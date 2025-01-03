@@ -152,6 +152,16 @@ static void run(Params params)
 static const std::map<std::string, atv::CmdArgument> knownArgs =
 {
     // name, exampleArgs, type, optional, help
+    {"control",
+      { "<file.json or param string>", atv::CmdArgument::Type::STRING, false,
+        "control scenario file in JSON format or a special control with its arguments separated by semicolon:\n"
+        "  * JSON file containing prescripted instructions, overriding all other command line arguments (not implemented yet)\n"
+        "  * :random:par1=1:par2=0:boolPar3 is a random control with the following available parameters:\n"
+        "    * duration: length of video in secs, 60 if not given\n"
+        "    * powerup: if given, power-on animation is run at the beginning, and fade to black is done at the end\n"
+        "    * fixsettings: if given, some TV settings are not random\n"
+        "    * fps: frames per second, 30 if not given (not implemented properly yet)\n"
+        "    Example control description: \":random:duration=60:fixsettings:powerup\"" }},
     {"verbose",
       { "n",     atv::CmdArgument::Type::INT,  true,
         "level of verbosity from 0 to 5" }},
@@ -161,16 +171,6 @@ static const std::map<std::string, atv::CmdArgument> knownArgs =
     {"seed",
       { "value", atv::CmdArgument::Type::INT, true,
         "random seed to start random generator or 0 to randomize by current date and time" }},
-    {"control",
-      { "<file.json or param string>", atv::CmdArgument::Type::STRING, false,
-        "control scenario file in JSON format or a special control with its arguments separated by semicolon:\n"
-        "  * JSON file containing prescripted instructions (not implemented yet)\n"
-        "  * :random:par1=1:par2=0:boolPar3 is a random control with the following available parameters:\n"
-        "    * duration: length of video in secs, 60 if not given\n"
-        "    * powerup: if given, power-on animation is run at the beginning, and fade to black is done at the end\n"
-        "    * fixsettings: if given, some TV settings are not random\n"
-        "    * fps: frames per second, 30 if not given (not implemented properly yet)\n"
-        "    Example control description: \":random:duration=60:fixsettings:powerup\"" }},
     {"in",
       { "src1 [src2 ... srcN]", atv::CmdArgument::Type::LIST_STRING, false,
         "signal sources: still images, video files or special sources:\n"
