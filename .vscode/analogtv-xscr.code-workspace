@@ -9,7 +9,9 @@
 		"cmake.buildDirectory": "${userHome}/builds/analogtv-xscr/${buildType}",
 		"cmake.configureSettings": {
 			//"OpenCV_DIR" : "/home/savuor/builds/ocv/4.x/Release/install/lib/cmake/opencv4"
-			"OpenCV_DIR" : "/home/savuor/builds/ocv/4.x/Debug/install/lib/cmake/opencv4",
+			//"OpenCV_DIR" : "/home/savuor/builds/ocv/4.x/Debug/install/lib/cmake/opencv4",
+			"OpenCV_DIR" : "/home/savuor/builds/ocv/5.x/Debug/install/lib/cmake/opencv5",
+			//"OpenCV_DIR" : "/home/savuor/builds/ocv/5.x/Release/install/lib/cmake/opencv5",
 			"wxWidgets_DIR" : "/home/savuor/builds/wxWidgets/install/lib/cmake/wxWidgets/"
 		}
 	},
@@ -32,7 +34,9 @@
 					"--size", "1280", "1024",
 					"--seed", "1234",
 					"--in", //"~/Pictures/90s/*",
-							"/home/savuor/Videos/disney_ort.mp4",
+							//"/home/savuor/Videos/disney_ort.mp4",
+							"/home/savuor/Videos/koroleva_tulips.mp4",
+							"/home/savuor/Videos/smile_1tv_92.mp4",
 							":bars:/home/savuor/code/xscreensaver/hacks/images/amiga.png",
 							":bars:/home/savuor/Pictures/ort.png",
 							":cam:0",

@@ -105,9 +105,6 @@ static void run(Params params)
 
   control->run();
 
-  //TODO: remove it
-  tv.powerup = 0.0;
-
   while (true)
   {
     auto action = control->getNext();
