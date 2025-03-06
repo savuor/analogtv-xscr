@@ -46,8 +46,6 @@ struct Control
 
   virtual void rotateKnobsStart() = 0;
 
-  virtual void rotateKnobsSwitch() = 0;
-
   virtual void run() = 0;
 
   virtual Operation getNext() = 0;

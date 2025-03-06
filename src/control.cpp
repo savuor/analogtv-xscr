@@ -173,7 +173,7 @@ struct RandomControl : public Control
     }
   }
 
-  void rotateKnobsSwitch() override
+  void rotateKnobsSwitch()
   {
     if (!this->fixSettings && !(this->rng() % 5))
     {
