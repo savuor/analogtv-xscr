@@ -210,6 +210,7 @@ struct RandomControl : public Control
     this->powerUpLastFrame = POWERUP_DURATION * this->fps;
     this->fadeOutFirstFrame = (this->duration - POWERDOWN_DURATION) * this->fps;
 
+    // for channel switching
     this->channelLastFrame = 0;
   }
 
@@ -316,6 +317,7 @@ struct RandomControl : public Control
 
   bool useFlutterHorizontalDesync;
 };
+
 
 std::shared_ptr<Control> Control::create(const std::string &desc)
 {
