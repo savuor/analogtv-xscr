@@ -8,6 +8,25 @@
 namespace atv
 {
 
+cv::Mat drawTime(double time)
+{
+  int hours = time / 3600.0;
+  time -= hours * 3600.0;
+  int minutes = time / 60.0;
+  time -= minutes * 60.0;
+  int secs = time;
+  time -= secs;
+  int msecs = time * 1000.0;
+  std::string text = cv::format("%02d:%02d:%02d.%03d", hours, minutes, secs, msecs);
+  int baseline = 0;
+  cv::Size szOsd = cv::getTextSize(text, cv::FONT_HERSHEY_SIMPLEX, 2.0, 3, &baseline);
+  cv::Mat osd(szOsd, CV_8UC4, cv::Scalar::all(0));
+  cv::putText(osd, text, {0, osd.rows-baseline}, cv::FONT_HERSHEY_SIMPLEX, 2.0, cv::Scalar::all(255), 3);
+
+  return osd;
+}
+
+
 struct BarsSource : Source
 {
   static const cv::Size defaultSize; // 320x240
@@ -71,8 +90,6 @@ BarsSource::BarsSource(const cv::Mat& _logoImg, cv::Size _outSize)
 
 void BarsSource::update(AnalogInput& input, double time)
 {
-  //TODO: draw time in debug mode
-
   // original name: update_smpte_colorbars()
 
   /* 
@@ -140,6 +157,10 @@ void BarsSource::update(AnalogInput& input, double time)
     int yoff = outh * 0.20;
     input.load_ximage(this->logoImg, this->logoMask, xoff, yoff, w2, h2, outw, outh);
   }
+
+  //DEBUG
+  // cv::Mat osd = drawTime(time);
+  // input.load_ximage(osd, cv::Mat4b(), 240, 240, osd.cols, osd.rows, this->outSize.width, this->outSize.height);
 }
 
 
@@ -183,9 +204,8 @@ struct ImageSource : Source
   bool do_ssavi;
 };
 
-void ImageSource::update(AnalogInput& input, double time)
+void ImageSource::update(AnalogInput& input, double /*time*/)
 {
-  //TODO: draw time in debug mode
   //TODO: do not update since last time
   int w = this->resizedImg.cols * 0.815; /* underscan */
   int h = this->resizedImg.rows * 0.970;
@@ -348,6 +368,10 @@ void VideoSource::update(AnalogInput& input, double time)
   input.setup_sync(1, 0);
 
   input.load_ximage(prepared, cv::Mat4b(), x, y, w, h, this->outSize.width, this->outSize.height);
+
+  //DEBUG
+  //cv::Mat osd = drawTime(time);
+  //input.load_ximage(osd, cv::Mat4b(), 240, 240, osd.cols, osd.rows, this->outSize.width, this->outSize.height);
 
   // for next frame
   //TODO: check time since last grab
