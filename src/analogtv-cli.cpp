@@ -161,7 +161,8 @@ static const std::map<std::string, atv::CmdArgument> knownArgs =
         "    * powerup: if given, power-on animation is run at the beginning, and fade to black is done at the end\n"
         "    * fixsettings: if given, some TV settings are not random\n"
         "    * fps: frames per second, 30 if not given (not implemented properly yet)\n"
-        "    Example control description: \":random:duration=60:fixsettings:powerup\"" }},
+        "    Example control description: \":random:duration=60:fixsettings:powerup\"\n"
+        "  * :gui use GUI to control everything manually" }},
     {"verbose",
       { "n",     atv::CmdArgument::Type::INT,  true,
         "level of verbosity from 0 to 5" }},

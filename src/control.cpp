@@ -364,6 +364,10 @@ std::shared_ptr<Control> Control::create(const std::string &desc)
 
       control = std::make_shared<RandomControl>(fixSettings, fps, duration, powerUpDown);
     }
+    else if (stype == "gui")
+    {
+      throw std::runtime_error("GUI control is not implemented yet");
+    }
     else
     {
       throw std::runtime_error("Unknown source type: " + stype);
