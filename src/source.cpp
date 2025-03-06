@@ -311,8 +311,8 @@ void VideoSource::init()
     throw std::runtime_error(err);
   }
 
-  frameSize = { (int)cap.get(cv::CAP_PROP_FRAME_WIDTH), (int)cap.get(cv::CAP_PROP_FRAME_HEIGHT)};
-  fittedSize = frameSize;
+  this->frameSize = { (int)cap.get(cv::CAP_PROP_FRAME_WIDTH), (int)cap.get(cv::CAP_PROP_FRAME_HEIGHT)};
+  this->fittedSize = this->frameSize;
 
   Log::write(2, "reading from " + (isCamera ? ("cam #" + std::to_string(nCamera)) : videoFileName) + " " +
                 std::to_string(frameSize.width) + "x" + std::to_string(frameSize.height));
