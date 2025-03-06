@@ -277,6 +277,9 @@ struct VideoSource : Source
   bool isCamera;
   std::string videoFileName;
   int nCamera;
+
+  double lastGrabTime;
+  double fps;
 };
 
 
@@ -314,7 +317,8 @@ void VideoSource::init()
   Log::write(2, "reading from " + (isCamera ? ("cam #" + std::to_string(nCamera)) : videoFileName) + " " +
                 std::to_string(frameSize.width) + "x" + std::to_string(frameSize.height));
 
-  //TODO: time since last grab == infinity
+  this->lastGrabTime = -std::numeric_limits<double>::max();
+  this->fps = cap.get(cv::CAP_PROP_FPS);
 }
 
 
@@ -333,14 +337,15 @@ void VideoSource::update(AnalogInput& input, double time)
 {
   cv::Mat frame, prepared;
 
-  //TODO: for a video file: keep time
-
-  //TODO: check time since last grab
-  // if (timeSinceLastGrab > 2.0 / fps)
-  // {
-  //   // for a video file: keep time, seek to needed frame
-  //   cap.grab();
-  // }
+  if (time - lastGrabTime >= 1.0 / this->fps)
+  {
+    if (!isCamera)
+    {
+      cap.set(cv::CAP_PROP_POS_MSEC, time * 1000.0);
+    }
+    cap.grab();
+    this->lastGrabTime = time;
+  }
 
   bool ok = cap.retrieve(frame);
 
@@ -374,8 +379,8 @@ void VideoSource::update(AnalogInput& input, double time)
   //input.load_ximage(osd, cv::Mat4b(), 240, 240, osd.cols, osd.rows, this->outSize.width, this->outSize.height);
 
   // for next frame
-  //TODO: check time since last grab
   cap.grab();
+  this->lastGrabTime = time;
 }
 
 
