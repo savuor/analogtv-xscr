@@ -280,8 +280,8 @@ void VideoSource::init()
   if (!ok)
   {
     std::string err = "Failed to open VideoCapture for " +
-                      isCamera ? ("camera #" + std::to_string(nCamera)) :
-                                 ("file " + videoFileName);
+                      (isCamera ? ("camera #" + std::to_string(nCamera)) :
+                                  ("file " + videoFileName));
     throw std::runtime_error(err);
   }
 
