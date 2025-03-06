@@ -122,13 +122,13 @@ static void run(Params params)
     }
 
     control->setTvControls(tv);
+    double curTime = control->getTime();
 
     atv::ChanSetting& curChannel = control->chanSettings[curInput];
     for (size_t i = 0; i < curChannel.receptions.size(); i++)
     {
       atv::AnalogReception& rec = curChannel.receptions[i];
-      //TODO: pass current time
-      curChannel.sources[i]->update(rec.input);
+      curChannel.sources[i]->update(rec.input, curTime);
       /* Noisy image */
       rec.update(rng);
     }

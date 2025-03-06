@@ -214,6 +214,11 @@ struct RandomControl : public Control
     this->channelLastFrame = 0;
   }
 
+  double getTime() override
+  {
+    return this->frameCounter / this->fps;
+  }
+
   Operation getNext() override
   {
     Operation op;

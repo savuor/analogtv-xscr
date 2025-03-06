@@ -30,7 +30,7 @@ struct BarsSource : Source
 
   BarsSource(const cv::Mat& _logoImg, cv::Size _outSize);
 
-  void update(AnalogInput& input) override;
+  void update(AnalogInput& input, double time) override;
 
   cv::Size getImageSize() override
   {
@@ -69,8 +69,10 @@ BarsSource::BarsSource(const cv::Mat& _logoImg, cv::Size _outSize)
 }
 
 
-void BarsSource::update(AnalogInput& input)
+void BarsSource::update(AnalogInput& input, double time)
 {
+  //TODO: draw time in debug mode
+
   // original name: update_smpte_colorbars()
 
   /* 
@@ -174,15 +176,16 @@ struct ImageSource : Source
     do_ssavi = _do_ssavi;
   }
 
-  void update(AnalogInput& input) override;
+  void update(AnalogInput& input, double time) override;
 
   cv::Mat img;
   cv::Mat resizedImg;
   bool do_ssavi;
 };
 
-void ImageSource::update(AnalogInput& input)
+void ImageSource::update(AnalogInput& input, double time)
 {
+  //TODO: draw time in debug mode
   //TODO: do not update since last time
   int w = this->resizedImg.cols * 0.815; /* underscan */
   int h = this->resizedImg.rows * 0.970;
@@ -236,7 +239,7 @@ struct VideoSource : Source
 
   void init();
 
-  void update(AnalogInput& input) override;
+  void update(AnalogInput& input, double time) override;
 
   cv::Size getImageSize() override
   {
@@ -306,7 +309,7 @@ void VideoSource::setOutSize(cv::Size _outSize)
 }
 
 
-void VideoSource::update(AnalogInput& input)
+void VideoSource::update(AnalogInput& input, double time)
 {
   cv::Mat frame, prepared;
 

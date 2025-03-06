@@ -50,6 +50,8 @@ struct Control
 
   virtual Operation getNext() = 0;
 
+  virtual double getTime() = 0;
+
   std::vector<ChanSetting> chanSettings;
 };
 
