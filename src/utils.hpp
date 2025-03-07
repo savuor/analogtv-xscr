@@ -24,6 +24,12 @@ std::optional<int> parseInt(const std::string &s);
 // "asdf:qwer"   by ":" -> ["asdf", "qwer"]
 std::vector<std::string> split(const std::string& s, char d);
 
+// transforms a list of strings to key-value pairs:
+// ["a", "k1=v1", "k2=v2", ""] -> {"a":"", "k1":"v1", "k2":"v2"}
+// empty strings are omitted
+// more than one '=' character in a string is forbidden
+std::map<std::string, std::string> parseKeyValues(const std::vector<std::string>& tokens);
+
 struct CmdArgument
 {
   enum class Type

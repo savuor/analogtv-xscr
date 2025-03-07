@@ -24,6 +24,27 @@ std::vector<std::string> split(const std::string& s, char d)
     return tokens;
 }
 
+
+std::map<std::string, std::string> parseKeyValues(const std::vector<std::string>& tokens)
+{
+  std::map<std::string, std::string> kv;
+  for (const std::string& st : tokens)
+  {
+    if (!st.empty())
+    {
+      std::vector<std::string> ttk = atv::split(st, '=');
+      if (ttk.size() > 2)
+      {
+        throw std::runtime_error("Parameters should be of a form param=value");
+      }
+      std::string arg = ttk.size() == 2 ? ttk[1] : std::string();
+      kv[ttk[0]] = arg;
+    }
+  }
+  return kv;
+}
+
+
 // I/O
 
 cv::Mat loadImage(const std::string& fname)
