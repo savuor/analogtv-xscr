@@ -14,6 +14,7 @@ struct Log
     static void setProgName(const std::string& s);
 };
 
+cv::Mat drawTime(double time);
 
 cv::Mat loadImage(const std::string& fname);
 
