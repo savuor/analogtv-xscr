@@ -337,25 +337,13 @@ std::shared_ptr<Control> Control::create(const std::string &desc)
       throw std::runtime_error("Control type not given");
     }
     std::string stype = tokens[1];
+
+    std::map<std::string, std::string> kv = parseKeyValues(tokens);
+    kv.erase(stype);
+
     // should be like ":random" or ":random:p=1:q=2:b"
     if (stype == "random")
     {
-      std::map<std::string, std::string> kv;
-      for (size_t ti = 2; ti < tokens.size(); ti++)
-      {
-        const std::string &st = tokens[ti];
-        if (!st.empty())
-        {
-          std::vector<std::string> ttk = atv::split(st, '=');
-          if (ttk.size() > 2)
-          {
-            throw std::runtime_error("Parameters should be of a form param=value");
-          }
-          std::string arg = ttk.size() == 2 ? ttk[1] : std::string();
-          kv[ttk[0]] = arg;
-        }
-      }
-
       double duration = 60;
       if (kv.count("duration"))
       {
