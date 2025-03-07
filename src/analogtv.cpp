@@ -146,8 +146,8 @@ void AnalogTV::configure()
   float ratio;
   float height_snap=0.025;
 
-  int hlim = this->outBuffer.rows;
-  int wlim = this->outBuffer.cols;
+  int hlim = this->outHeight;
+  int wlim = this->outWidth;
   ratio = wlim / (float) hlim;
 
 // NO_CONSTRAIN_RATIO is defined
@@ -158,7 +158,7 @@ void AnalogTV::configure()
 //#endif
 
   std::string debugPrint1 = std::to_string(wlim) + "x" + std::to_string(hlim);
-  std::string debugPrint2 = " in " + std::to_string(this->outBuffer.cols) + "x" + std::to_string(this->outBuffer.rows);
+  std::string debugPrint2 = " in " + std::to_string(this->outWidth) + "x" + std::to_string(this->outHeight);
   std::string debugPrint3 = " (" + std::to_string(min_ratio) + " < " + std::to_string(ratio) + " < " + std::to_string(max_ratio) + ")";
   if (wlim < 266 || hlim < 200)
     {
@@ -188,9 +188,9 @@ void AnalogTV::configure()
   if (ratio < crazy_min_ratio || ratio > crazy_max_ratio)
     {
       if (ratio < crazy_min_ratio)
-        hlim = this->outBuffer.rows;
+        hlim = this->outHeight;
       else
-        wlim = this->outBuffer.cols;
+        wlim = this->outWidth;
       // debug mode
       Log::write(3, "size: aspect: " + debugPrint1 + debugPrint2 + debugPrint3);
     }
@@ -224,7 +224,8 @@ AnalogTV::AnalogTV(int seed) :
   xrepl(),
   subwidth(),
   image(),
-  outBuffer(),
+  outWidth(),
+  outHeight(),
 
   tint_i(),
   tint_q(),
@@ -282,9 +283,10 @@ AnalogTV::AnalogTV(int seed) :
 }
 
 
-void AnalogTV::set_buffer(cv::Mat4b outBuffer)
+void AnalogTV::set_out_buffer_size(int outWidth, int outHeight)
 {
-  this->outBuffer = outBuffer;
+  this->outWidth  = outWidth;
+  this->outHeight = outHeight;
 
   this->configure();
 }
@@ -1113,7 +1115,7 @@ void AnalogTV::parallel_for_draw_lines(const cv::Range& r)
 }
 
 
-void AnalogTV::draw(double noiselevel, const std::vector<AnalogReception>& receptions)
+void AnalogTV::draw(double noiselevel, const std::vector<AnalogReception>& receptions, cv::Mat4b outBuffer)
 {
   /*  int bigloadchange,drawcount;*/
 
@@ -1324,8 +1326,8 @@ void AnalogTV::draw(double noiselevel, const std::vector<AnalogReception>& recep
 
   if (overall_bot > overall_top)
   {
-    int screen_xo = ( this->outBuffer.cols - this->usewidth  )/2;
-    int screen_yo = ( this->outBuffer.rows - this->useheight )/2;
+    int screen_xo = ( this->outWidth  - this->usewidth  )/2;
+    int screen_yo = ( this->outHeight - this->useheight )/2;
 
     int /* dest_x = screen_xo, */ dest_y = screen_yo + overall_top;
     unsigned w = this->usewidth, h = overall_bot - overall_top;
@@ -1335,7 +1337,7 @@ void AnalogTV::draw(double noiselevel, const std::vector<AnalogReception>& recep
       w += screen_xo;
       screen_xo = 0;
     }
-    w = std::min((int)w, std::min(this->outBuffer.cols - screen_xo, this->image.cols));
+    w = std::min((int)w, std::min(this->outWidth - screen_xo, this->image.cols));
 
     if (dest_y < 0)
     {
@@ -1343,9 +1345,9 @@ void AnalogTV::draw(double noiselevel, const std::vector<AnalogReception>& recep
       overall_top -= dest_y;
       dest_y = 0;
     }
-    h = std::min((int)h, std::min(this->outBuffer.rows - dest_y, this->image.rows - overall_top));
+    h = std::min((int)h, std::min(this->outHeight - dest_y, this->image.rows - overall_top));
 
-    this->image(cv::Rect(0, overall_top, w, h)).copyTo(this->outBuffer(cv::Rect(screen_xo, dest_y, w, h)));
+    this->image(cv::Rect(0, overall_top, w, h)).copyTo(outBuffer(cv::Rect(screen_xo, dest_y, w, h)));
   }
 }
 

@@ -91,9 +91,9 @@ static void run(Params params)
 
   atv::Log::write(2, "initialized " + std::to_string(outputs.size()) + " outputs");
 
-  cv::Mat4b outBuffer = cv::Mat4b(outSize);
+  cv::Mat4b outBuffer(outSize);
   atv::AnalogTV tv(seed);
-  tv.set_buffer(outBuffer);
+  tv.set_out_buffer_size(outSize.width, outSize.height);
 
   std::shared_ptr<atv::Control> control = atv::Control::create(params.controlDescription);
   control->setRNG(seed);
@@ -133,7 +133,7 @@ static void run(Params params)
       rec.update(rng);
     }
 
-    tv.draw(curChannel.noise_level, curChannel.receptions);
+    tv.draw(curChannel.noise_level, curChannel.receptions, outBuffer);
 
     // Send rendered frame to outputs
     for (const auto& o : outputs)

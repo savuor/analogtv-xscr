@@ -141,7 +141,7 @@ private:
 
   int usewidth, useheight, xrepl, subwidth;
   cv::Mat4b image; /* usewidth * useheight */
-  cv::Mat4b outBuffer;
+  int outWidth, outHeight;
 
   int shrinkpulse;
 
@@ -209,8 +209,8 @@ public:
   int channel_change_cycles;
 
   AnalogTV(int seed = 0);
-  void set_buffer(cv::Mat4b outBuffer);
-  void draw(double noiselevel, const std::vector<AnalogReception>& receptions);
+  void set_out_buffer_size(int outWidth, int outHeight);
+  void draw(double noiselevel, const std::vector<AnalogReception>& receptions, cv::Mat4b outBuffer);
 
 private:
   void  setup_frame();
