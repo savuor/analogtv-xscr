@@ -19,6 +19,7 @@ add_executable(analogtv-cli
     "./src/source.cpp"
     "./src/output.cpp"
     "./src/analogtv.cpp"
+    "./src/analogtv_input.cpp"
     "./src/utils.cpp"
     "./src/control.cpp"
 )
