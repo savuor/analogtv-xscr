@@ -151,40 +151,54 @@ static const std::map<std::string, atv::CmdArgument> knownArgs =
     // name, exampleArgs, type, optional, help
     {"control",
       { "<file.json or param string>", atv::CmdArgument::Type::STRING, false,
-        "control scenario file in JSON format or a special control with its arguments separated by semicolon:\n"
+        "control scenario file in JSON format or a parametric string specifying control type:\n"
         "  * JSON file containing prescripted instructions, overriding all other command line arguments (not implemented yet)\n"
-        "  * :random:param1=1:param2=0:boolParam3 is a random control with the following available parameters:\n"
+        "  * :random is a random control with the following available parameters:\n"
         "    * duration: length of video in secs, 60 if not given\n"
         "    * powerup: if given, power-on animation is run at the beginning, and fade to black is done at the end\n"
         "    * fixsettings: if given, some TV settings are not random\n"
         "    * fps: frames per second, 30 if not given (not implemented properly yet)\n"
         "    Example control description: \":random:duration=60:fixsettings:powerup\"\n"
-        "  * :gui use GUI to control everything manually" }},
+        "  * :gui use GUI to control everything manually (not implemented yet)" }},
     {"verbose",
       { "n",     atv::CmdArgument::Type::INT,  true,
         "level of verbosity from 0 to 5" }},
     {"size",
       { "width height", atv::CmdArgument::Type::LIST_INT, true,
-        "use different size than maximum of given images" }},
+        "use different size than maximum of given images\n"
+        "Note: if no size is given and the only source is SMPTE bars generator then the output source size will be 320x240" }},
     {"seed",
       { "value", atv::CmdArgument::Type::INT, true,
         "random seed to start random generator or 0 to randomize by current date and time" }},
     {"in",
       { "src1 [src2 ... srcN]", atv::CmdArgument::Type::LIST_STRING, false,
-        "signal sources: still images, video files or special sources:\n"
-        "  * :cam:0 to :cam:9 are camera sources\n"
-        "  * :cam:number:timestamp overlays timestamp over the video\n"
-        "  * :bars are SMPTE color bars (if it's the only image and no size is given then the output size will be 320x240)\n"
-        "  * :bars:/path/to/image is the as above with an overlaid station logo\n"
-        "  * :bars:/path/to/image:timestamp is the same but with timestamp overlaid\n"
-        "  * :video:/path/to/video:timestamp is the alternative way to specify video with timestamp overlaid\n"
-        "  * :image:/path/to/image:timestamp is the alternative way to specify image with timestamp overlaid\n"
-        "Note: video files are detected by extension. Supported extensions are listed in source.cpp file\n"
-        "as knownVideoExtensions variable." }},
+        "signal sources such as still images, video files or special sources:\n"
+        "  * Still image file name\n"
+        "  * Video file name\n"
+        "    Note: video files are detected by extension. Supported extensions are listed in source.cpp file\n"
+        "    as knownVideoExtensions variable.\n"
+        "  * :cam uses camera as a video source, params are:\n"
+        "    * camera number in the system, 0 if not given\n"
+        "    * timestamp: overlays timestamp over the image\n"
+        "    Example camera descriptions: \":cam\" \":cam:0\" \":cam:0:timestamp\"\n"
+        "  * :bars are SMPTE color bars, params are:\n"
+        "    * Path to image to be used as an overlaid station logo (optional)\n"
+        "    * timestamp: overlays timestamp over the image\n"
+        "    Example bars descriptions: \":bars\" \":bars:/path/to/image\" \":bars:/path/to/image:timestamp\"\n"
+        "  * :video is an alternative way to specify video source, params are:\n"
+        "    * Path to video\n"
+        "    * timestamp: overlays timestamp over the image\n"
+        "    Example video descriptions: \":video:/path/to/video\" \":video:/path/to/video:timestamp\"\n"
+        "  * :image is an alternative way to specify image source, params are:\n"
+        "    * Path to image\n"
+        "    * timestamp: overlays timestamp over the image\n"
+        "    Example video descriptions: \":image:/path/to/image\" \":image:/path/to/image:timestamp\"" }},
     {"out",
       { "out1 [out2 ... outN]", atv::CmdArgument::Type::LIST_STRING, false,
-        "where to output video: video files or window, output to all sources happens simultaneously\n"
-        "  * :highgui means output to window using OpenCV HighGUI module, stable FPS is not guaranteed" }}
+        "resulting picture sinks such as video files or window:\n"
+        "  * Video file name\n"
+        "  * :highgui means output to window using OpenCV HighGUI module, stable FPS is not guaranteed\n"
+        "Note: output is done simultaneously to all sinks" }}
 };
 
 static const std::string message =

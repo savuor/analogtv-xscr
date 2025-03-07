@@ -311,7 +311,11 @@ void showUsage(const std::string& message, const std::string& appName, const std
     }
     std::cout << " [other keys are optional]" << std::endl;
 
-    std::cout << "Keys:" << std::endl;
+    std::cout << "Key arguments may be integers, file names or parametric strings." << std::endl;
+    std::cout << "Each parametric string has a form \":class:string1:string2:key1=value1:key2=value2\"" << std::endl;
+    std::cout << "where class is a name of control class, type of source or output." << std::endl;
+    std::cout << "All the strings and key-value pairs are passed to the given class." << std::endl;
+    std::cout << "Supported keys:" << std::endl;
     for (const auto &[k, v] : knownArgs)
     {
         std::cout << "    --" << k << std::string(12 - k.length(), ' ');
