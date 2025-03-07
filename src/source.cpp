@@ -35,6 +35,7 @@ struct BarsSource : Source
     Source()
   {
     Source::outSize = defaultSize;
+    this->displayTimestamp = false;
   }
 
   BarsSource(cv::Size _outSize) :
@@ -43,11 +44,11 @@ struct BarsSource : Source
     outSize = _outSize;
   }
 
-  BarsSource(const cv::Mat& _logoImg) :
-    BarsSource(_logoImg, defaultSize)
+  BarsSource(const cv::Mat& _logoImg, bool _displayTimestamp = false) :
+    BarsSource(_logoImg, defaultSize, _displayTimestamp)
   { }
 
-  BarsSource(const cv::Mat& _logoImg, cv::Size _outSize);
+  BarsSource(const cv::Mat& _logoImg, cv::Size _outSize, bool _displayTimestamp = false);
 
   void update(AnalogInput& input, double time) override;
 
@@ -66,25 +67,27 @@ struct BarsSource : Source
   { }
 
   cv::Mat logoImg, logoMask;
+  bool displayTimestamp;
 };
 
 const cv::Size BarsSource::defaultSize = cv::Size {320, 240};
 
-BarsSource::BarsSource(const cv::Mat& _logoImg, cv::Size _outSize)
+BarsSource::BarsSource(const cv::Mat& _logoImg, cv::Size _outSize, bool _displayTimestamp)
 {
-  outSize = _outSize;
-  logoImg = _logoImg;
+  this->outSize = _outSize;
+  this->logoImg = _logoImg;
+  this->displayTimestamp = _displayTimestamp;
 
   if (_logoImg.empty())
     return;
 
   /* Pull the alpha out of the logo and make a separate mask ximage. */
-  logoMask = cv::Mat(logoImg.size(), CV_8UC4, cv::Scalar(0));
+  this->logoMask = cv::Mat(logoImg.size(), CV_8UC4, cv::Scalar(0));
   std::vector<cv::Mat> logoCh;
   cv::split(logoImg, logoCh);
   cv::Mat z = cv::Mat(logoImg.size(), CV_8UC1, cv::Scalar(0));
   cv::merge(std::vector<cv::Mat> {logoCh[0], logoCh[1], logoCh[2], z}, logoImg);
-  cv::merge(std::vector<cv::Mat> {z, z, z, logoCh[3]}, logoMask);
+  cv::merge(std::vector<cv::Mat> {z, z, z, logoCh[3]}, this->logoMask);
 }
 
 
@@ -158,6 +161,12 @@ void BarsSource::update(AnalogInput& input, double time)
     input.load_ximage(this->logoImg, this->logoMask, xoff, yoff, w2, h2, outw, outh);
   }
 
+  if (this->displayTimestamp)
+  {
+    cv::Mat osd = drawTime(time);
+   input.load_ximage(osd, cv::Mat4b(), 240, 240, osd.cols, osd.rows, this->outSize.width, this->outSize.height);
+  }
+
   //DEBUG
   // cv::Mat osd = drawTime(time);
   // input.load_ximage(osd, cv::Mat4b(), 240, 240, osd.cols, osd.rows, this->outSize.width, this->outSize.height);
@@ -173,14 +182,15 @@ struct ImageSource : Source
     do_ssavi()
   { }
 
-  ImageSource(const cv::Mat& _img) :
-    ImageSource(_img, _img.size(), false)
+  ImageSource(const cv::Mat& _img, bool _displayTimestamp = false) :
+    ImageSource(_img, _img.size(), false, _displayTimestamp)
   { }
 
-  ImageSource(const cv::Mat& _img, cv::Size _outSize, bool _do_ssavi) :
+  ImageSource(const cv::Mat& _img, cv::Size _outSize, bool _do_ssavi, bool _displayTimestamp) :
     img(_img),
     resizedImg(_img),
-    do_ssavi(_do_ssavi)
+    do_ssavi(_do_ssavi),
+    displayTimestamp(_displayTimestamp)
   {
     Source::outSize = _outSize;
   }
@@ -202,9 +212,10 @@ struct ImageSource : Source
   cv::Mat img;
   cv::Mat resizedImg;
   bool do_ssavi;
+  bool displayTimestamp;
 };
 
-void ImageSource::update(AnalogInput& input, double /*time*/)
+void ImageSource::update(AnalogInput& input, double time)
 {
   //TODO: do not update since last time
   int w = this->resizedImg.cols * 0.815; /* underscan */
@@ -215,6 +226,16 @@ void ImageSource::update(AnalogInput& input, double /*time*/)
   input.setup_sync(1, this->do_ssavi);
 
   input.load_ximage(this->resizedImg, cv::Mat4b(), x, y, w, h, this->outSize.width, this->outSize.height);
+
+  if (this->displayTimestamp)
+  {
+    cv::Mat osd = drawTime(time);
+   input.load_ximage(osd, cv::Mat4b(), 240, 240, osd.cols, osd.rows, this->outSize.width, this->outSize.height);
+  }
+
+  //DEBUG
+  // cv::namedWindow("image");
+  // cv::imshow("image", input.sigMat);
 }
 
 
@@ -251,13 +272,22 @@ void ImageSource::setOutSize(cv::Size _outSize)
 struct VideoSource : Source
 {
   VideoSource() :
-    Source(), frameSize(), isCamera(false)
+    Source(),
+    frameSize(),
+    fittedSize(),
+    cap(),
+    isCamera(false),
+    videoFileName(0),
+    nCamera(0),
+    lastGrabTime(0),
+    fps(0),
+    displayTimestamp(false)
   { }
 
-  VideoSource(int nCam);
-  VideoSource(const std::string& fileName);
+  VideoSource(int nCam, bool showTimestamp = false);
+  VideoSource(const std::string& fileName, bool showTimestamp = false);
 
-  void init();
+  void init(bool showTimestamp);
 
   void update(AnalogInput& input, double time) override;
 
@@ -280,26 +310,27 @@ struct VideoSource : Source
 
   double lastGrabTime;
   double fps;
+  bool displayTimestamp;
 };
 
 
-VideoSource::VideoSource(int nCam)
+VideoSource::VideoSource(int nCam, bool showTimestamp)
 {
   nCamera = nCam;
   isCamera = true;
 
-  init();
+  init(showTimestamp);
 }
 
-VideoSource::VideoSource(const std::string& fileName)
+VideoSource::VideoSource(const std::string& fileName, bool showTimestamp)
 {
   isCamera = false;
   videoFileName = fileName;
 
-  init();
+  init(showTimestamp);
 }
 
-void VideoSource::init()
+void VideoSource::init(bool showTimestamp)
 {
   bool ok = isCamera ? cap.open(nCamera) : cap.open(videoFileName);
 
@@ -319,6 +350,8 @@ void VideoSource::init()
 
   this->lastGrabTime = -std::numeric_limits<double>::max();
   this->fps = cap.get(cv::CAP_PROP_FPS);
+
+  this->displayTimestamp = showTimestamp;
 }
 
 
@@ -374,9 +407,11 @@ void VideoSource::update(AnalogInput& input, double time)
 
   input.load_ximage(prepared, cv::Mat4b(), x, y, w, h, this->outSize.width, this->outSize.height);
 
-  //DEBUG
-  //cv::Mat osd = drawTime(time);
-  //input.load_ximage(osd, cv::Mat4b(), 240, 240, osd.cols, osd.rows, this->outSize.width, this->outSize.height);
+  if (displayTimestamp)
+  {
+    cv::Mat osd = drawTime(time);
+    input.load_ximage(osd, cv::Mat4b(), 240, 240, osd.cols, osd.rows, this->outSize.width, this->outSize.height);
+  }
 
   // for next frame
   cap.grab();
@@ -399,7 +434,12 @@ std::shared_ptr<Source> Source::create(const std::string& srcStr)
     }
     std::string stype = tokens[1];
     std::string arg = tokens.size() > 2 ? tokens[2] : std::string();
-    // should be like ":bars" or ":bars:/path/to/image"
+
+    std::map<std::string, std::string> kv = parseKeyValues(tokens);
+    kv.erase(stype);
+    bool timestamp = kv.count("timestamp") > 0;
+
+    // should be like ":bars" or ":bars:/path/to/image:params"
     if (stype == "bars")
     {
       cv::Mat logo;
@@ -407,12 +447,24 @@ std::shared_ptr<Source> Source::create(const std::string& srcStr)
       {
         logo = loadImage(arg);
       }
-      src = std::make_shared<BarsSource>(logo);
+      src = std::make_shared<BarsSource>(logo, timestamp);
     }
+    // should be like ":cam" or ":cam:number"
     else if (stype == "cam")
     {
       int nCam = arg.empty() ? 0 : parseInt(arg).value_or(0);
-      src = std::make_shared<VideoSource>(nCam);
+      src = std::make_shared<VideoSource>(nCam, timestamp);
+    }
+    // should be like ":video:/path/to/video:params"
+    else if (stype == "video")
+    {
+      src = std::make_shared<VideoSource>(arg, timestamp);
+    }
+    // should be like ":image:/path/to/image/:params"
+    else if (stype == "image")
+    {
+      cv::Mat img = loadImage(arg);
+      src = std::make_shared<ImageSource>(img, timestamp);
     }
     else
     {

@@ -153,7 +153,7 @@ static const std::map<std::string, atv::CmdArgument> knownArgs =
       { "<file.json or param string>", atv::CmdArgument::Type::STRING, false,
         "control scenario file in JSON format or a special control with its arguments separated by semicolon:\n"
         "  * JSON file containing prescripted instructions, overriding all other command line arguments (not implemented yet)\n"
-        "  * :random:par1=1:par2=0:boolPar3 is a random control with the following available parameters:\n"
+        "  * :random:param1=1:param2=0:boolParam3 is a random control with the following available parameters:\n"
         "    * duration: length of video in secs, 60 if not given\n"
         "    * powerup: if given, power-on animation is run at the beginning, and fade to black is done at the end\n"
         "    * fixsettings: if given, some TV settings are not random\n"
@@ -173,8 +173,12 @@ static const std::map<std::string, atv::CmdArgument> knownArgs =
       { "src1 [src2 ... srcN]", atv::CmdArgument::Type::LIST_STRING, false,
         "signal sources: still images, video files or special sources:\n"
         "  * :cam:0 to :cam:9 are camera sources\n"
+        "  * :cam:number:timestamp overlays timestamp over the video\n"
         "  * :bars are SMPTE color bars (if it's the only image and no size is given then the output size will be 320x240)\n"
         "  * :bars:/path/to/image is the as above with an overlaid station logo\n"
+        "  * :bars:/path/to/image:timestamp is the same but with timestamp overlaid\n"
+        "  * :video:/path/to/video:timestamp is the alternative way to specify video with timestamp overlaid\n"
+        "  * :image:/path/to/image:timestamp is the alternative way to specify image with timestamp overlaid\n"
         "Note: video files are detected by extension. Supported extensions are listed in source.cpp file\n"
         "as knownVideoExtensions variable." }},
     {"out",
