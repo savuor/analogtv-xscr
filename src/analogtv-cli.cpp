@@ -271,7 +271,6 @@ int main (int argc, char **argv)
   // Check that wxWidgets builds and works
   //wxPuts(wxT("TODO: implement a real GUI instead"));
 
-
   run(oparams.value());
 
   return 0;
