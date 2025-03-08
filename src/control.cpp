@@ -37,9 +37,9 @@ struct RandomControl : public Control
     this->chanSettings = { };
     for (size_t i = 0; i < nChannels; i++)
     {
-      ChanSetting channel;
+      ChanSetting channelSetting;
       // noise: 0 to 0.2 or 0 to 5.0, default 0.04
-      channel.noise_level = 0.06;
+      channelSetting.noise_level = 0.06;
 
       int last_station = 42;
       for (int stati = 0; stati < MAX_MULTICHAN; stati++)
@@ -84,14 +84,14 @@ struct RandomControl : public Control
             }
           }
 
-          channel.receptions.push_back(rec);
-          channel.sources.push_back(source);
+          channelSetting.receptions.push_back(rec);
+          channelSetting.sources.push_back(source);
 
           if (rec.level > 0.3) break;
           if (this->rng() % 4) break;
       }
 
-      this->chanSettings.push_back(channel);
+      this->chanSettings.push_back(channelSetting);
     }
   }
 

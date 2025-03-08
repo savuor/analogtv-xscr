@@ -25,19 +25,19 @@ void AnalogInput::setup_sync(int do_cb, int do_ssavi)
 
     signed char *sig = this->sigMat[lineno];
 
-    int i = ANALOGTV_SYNC_START;
+    int p = ANALOGTV_SYNC_START;
     if (vsync)
     {
-      while (i<ANALOGTV_BP_START) sig[i++] = ANALOGTV_BLANK_LEVEL;
-      while (i<ANALOGTV_H)        sig[i++] = synclevel;
+      while (p<ANALOGTV_BP_START) sig[p++] = ANALOGTV_BLANK_LEVEL;
+      while (p<ANALOGTV_H)        sig[p++] = synclevel;
     }
     else
     {
-      while (i<ANALOGTV_BP_START)  sig[i++] = synclevel;
-      while (i<ANALOGTV_PIC_START) sig[i++] = ANALOGTV_BLANK_LEVEL;
-      while (i<ANALOGTV_FP_START)  sig[i++] = ANALOGTV_BLACK_LEVEL;
+      while (p<ANALOGTV_BP_START)  sig[p++] = synclevel;
+      while (p<ANALOGTV_PIC_START) sig[p++] = ANALOGTV_BLANK_LEVEL;
+      while (p<ANALOGTV_FP_START)  sig[p++] = ANALOGTV_BLACK_LEVEL;
     }
-    while (i<ANALOGTV_H) sig[i++]=ANALOGTV_BLANK_LEVEL;
+    while (p<ANALOGTV_H) sig[p++]=ANALOGTV_BLANK_LEVEL;
 
     if (do_cb)
     {

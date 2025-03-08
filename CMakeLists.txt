@@ -2,7 +2,12 @@ cmake_minimum_required(VERSION 3.5)
 
 project(analogtv-xscr C CXX)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic -Wall -Wno-overlength-strings -std=c++17")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic -Wpedantic -pedantic-errors -Wall -Wno-overlength-strings \
+                                        -Werror -Wextra -Wcast-align -Wcast-qual -Wfloat-equal -Wredundant-decls \
+                                        -Wformat=2 -Wlogical-op -Wmissing-include-dirs -Wpointer-arith \
+                                        -Wsequence-point -Wshadow -Wswitch -Wundef -Wunreachable-code \
+                                        -Wunused-but-set-parameter -Wwrite-strings -std=c++17")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic -Wall -Wno-overlength-strings -Wshadow -std=c++17")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS} -O2")
 
 find_package(OpenCV)
