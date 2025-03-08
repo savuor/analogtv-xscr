@@ -154,18 +154,25 @@ void AnalogInput::load_ximage(const cv::Mat4b& pic_im, const cv::Mat4b& mask_im,
 
             if (!mask[x]) continue;
 
+            uint16_t r1 = col1[x].red;
+            uint16_t g1 = col1[x].green;
+            uint16_t b1 = col1[x].blue;
+            uint16_t r2 = col2[x].red;
+            uint16_t g2 = col2[x].green;
+            uint16_t b2 = col2[x].blue;
+
             /* Compute YIQ as:
             y=0.30 r + 0.59 g + 0.11 b
             i=0.60 r - 0.28 g - 0.32 b
             q=0.21 r - 0.52 g + 0.31 b
             The coefficients below are in .4 format */
 
-            rawy = ( 5*col1[x].red + 11*col1[x].green + 2*col1[x].blue +
-                     5*col2[x].red + 11*col2[x].green + 2*col2[x].blue)>>7;
-            rawi = (10*col1[x].red -  4*col1[x].green - 5*col1[x].blue +
-                    10*col2[x].red -  4*col2[x].green - 5*col2[x].blue)>>7;
-            rawq = ( 3*col1[x].red -  8*col1[x].green + 5*col1[x].blue +
-                     3*col2[x].red -  8*col2[x].green + 5*col2[x].blue)>>7;
+            rawy = ( 5*r1 + 11*g1 + 2*b1 +
+                     5*r2 + 11*g2 + 2*b2)>>7;
+            rawi = (10*r1 -  4*g1 - 5*b1 +
+                    10*r2 -  4*g2 - 5*b2)>>7;
+            rawq = ( 3*r1 -  8*g1 + 5*b1 +
+                     3*r2 -  8*g2 + 5*b2)>>7;
 
             /* Filter y at with a 4-pole low-pass Butterworth filter at 3.5 MHz
             with an extra zero at 3.5 MHz, from
