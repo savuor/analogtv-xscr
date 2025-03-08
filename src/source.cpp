@@ -43,9 +43,10 @@ struct BarsSource : Source
     outSize = _outSize;
   }
 
-  // used for images only
   void setSsavi(bool _do_ssavi) override
-  { }
+  {
+    this->do_ssavi = _do_ssavi;
+  }
 
   cv::Mat logoImg, logoMask;
   bool displayTimestamp;
@@ -101,7 +102,7 @@ void BarsSource::update(AnalogInput& input, double time)
     {75, 0, 0.0}     /* gray */
   };
 
-  input.setup_sync(1, 0);
+  input.setup_sync(1, this->do_ssavi);
 
   for (int col = 0; col < 7; col++)
   {
@@ -279,8 +280,10 @@ struct VideoSource : Source
 
   void setOutSize(cv::Size size) override;
 
-  // used for images only
-  void setSsavi(bool _do_ssavi) override { }
+  void setSsavi(bool _do_ssavi) override
+  {
+    this->do_ssavi = _do_ssavi;
+  }
 
   cv::Size frameSize, fittedSize;
   cv::VideoCapture cap;
@@ -384,7 +387,7 @@ void VideoSource::update(AnalogInput& input, double time)
   int x = (this->outSize.width  - w) / 2;
   int y = (this->outSize.height - h) / 2;
 
-  input.setup_sync(1, 0);
+  input.setup_sync(1, this->do_ssavi);
 
   input.load_ximage(prepared, cv::Mat4b(), x, y, w, h, this->outSize.width, this->outSize.height);
 

@@ -78,8 +78,7 @@ static void run(Params params)
   for (const auto& s : sources)
   {
     s->setOutSize(outSize);
-    //TODO: what's this?
-    // randomly set ssavi (what's this? BW?) for image sources
+    // randomly set ssavi (broken sync or something like this)
     s->setSsavi(rng() % 20 == 0);
   }
 
