@@ -92,7 +92,7 @@ static void run(Params params)
 
   cv::Mat4b outBuffer(outSize);
   atv::AnalogTV tv(seed);
-  tv.set_out_buffer_size(outSize.width, outSize.height);
+  tv.configure(outSize.width, outSize.height);
 
   std::shared_ptr<atv::Control> control = atv::Control::create(params.controlDescription);
   control->setRNG(seed);

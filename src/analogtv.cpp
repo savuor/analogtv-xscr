@@ -122,9 +122,11 @@ constexpr float puramp(float powerUp, float tc, float start, float over)
 
 static const double float_low8_ofs=8388608.0;
 
-
-void AnalogTV::configure()
+void AnalogTV::configure(int _outWidth, int _outHeight)
 {
+  this->outWidth  = _outWidth;
+  this->outHeight = _outHeight;
+
   /* If the window is very small, don't let the image we draw get lower
      than the actual TV resolution (266x200.)
 
@@ -280,15 +282,6 @@ AnalogTV::AnalogTV(int seed) :
     intensity = std::min(intensity, 65535);
     this->intensity_values[i] = intensity >> 8;
   }
-}
-
-
-void AnalogTV::set_out_buffer_size(int _outWidth, int _outHeight)
-{
-  this->outWidth  = _outWidth;
-  this->outHeight = _outHeight;
-
-  this->configure();
 }
 
 

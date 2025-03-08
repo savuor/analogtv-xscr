@@ -125,12 +125,11 @@ public:
   int channel_change_cycles;
 
   AnalogTV(int seed = 0);
-  void set_out_buffer_size(int outWidth, int outHeight);
+  void configure(int outWidth, int outHeight);
   void draw(double noiselevel, const std::vector<AnalogReception>& receptions, cv::Mat4b outBuffer);
 
 private:
   void  setup_frame();
-  void  configure();
   void  ntsc_to_yiq(int lineno, unsigned int signal_offset, int start, int end, struct analogtv_yiq_s *it_yiq) const;
   void  sync();
   void  setup_levels(double avgheight);
