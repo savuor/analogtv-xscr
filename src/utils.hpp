@@ -31,6 +31,15 @@ std::vector<std::string> split(const std::string& s, char d);
 // more than one '=' character in a string is forbidden
 std::map<std::string, std::string> parseKeyValues(const std::vector<std::string>& tokens);
 
+struct ParametricString
+{
+  std::string className;
+  std::vector<std::string> varArgs;
+  std::map<std::string, std::string> kvArgs;
+
+  static ParametricString parse(const std::string& desc);
+};
+
 struct CmdArgument
 {
   enum class Type
@@ -66,7 +75,7 @@ struct CmdArgument
   }
 };
 
-typedef std::variant<bool, int, std::string, std::vector<int>, std::vector<std::string>> ArgType;
+typedef std::variant<bool, int, ParametricString, std::vector<int>, std::vector<ParametricString>> ArgType;
 std::map<std::string, ArgType> parseCmdArgs(const std::map<std::string, CmdArgument>& knownArgs, int nArgs, char** argv);
 
 void showUsage(const std::string& message, const std::string& appName, const std::map<std::string, CmdArgument>& knownArgs);

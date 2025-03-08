@@ -2,7 +2,8 @@
 
 #include "precomp.hpp"
 
-#include "analogtv.hpp"
+#include "utils.hpp"
+#include "analogtv_input.hpp"
 
 namespace atv
 {
@@ -13,13 +14,7 @@ struct Source
     outSize()
   { }
 
-  /**
-   * @brief Currently supported are: ":bars:<logoFile>", ":cam:<cameraNum>" and image files
-   * 
-   * @param s Filename or source name
-   * @return Source object
-   */
-  static std::shared_ptr<Source> create(const std::string& s);
+  static std::shared_ptr<Source> create(const atv::ParametricString& s);
 
   virtual void update(AnalogInput& input, double time) = 0;
 

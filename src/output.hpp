@@ -1,6 +1,7 @@
 #pragma once
 
 #include "precomp.hpp"
+#include "utils.hpp"
 
 namespace atv
 {
@@ -17,7 +18,7 @@ struct Output
  * @param imgSize Image size to write
  * @return Output object
  */
-  static std::shared_ptr<Output> create(const std::string& s, cv::Size imgSize);
+  static std::shared_ptr<Output> create(const atv::ParametricString& s, cv::Size imgSize);
 
   virtual void send(const cv::Mat& m) = 0;
 

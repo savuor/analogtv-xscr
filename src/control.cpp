@@ -324,53 +324,46 @@ struct RandomControl : public Control
 };
 
 
-std::shared_ptr<Control> Control::create(const std::string &desc)
+std::shared_ptr<Control> Control::create(const atv::ParametricString& desc)
 {
   std::shared_ptr<Control> control;
-  std::vector<std::string> tokens = atv::split(desc, ':');
 
-  if (tokens[0].empty())
+  if (!desc.className.empty())
   {
-    // string starts from ":"
-    if (tokens.size() < 2)
-    {
-      throw std::runtime_error("Control type not given");
-    }
-    std::string stype = tokens[1];
-
-    std::map<std::string, std::string> kv = parseKeyValues(tokens);
-    kv.erase(stype);
-
     // should be like ":random" or ":random:p=1:q=2:b"
-    if (stype == "random")
+    if (desc.className == "random")
     {
-      double duration = 60;
-      if (kv.count("duration"))
+      const double defaultDuration = 60.0;
+      double duration = defaultDuration;
+      if (desc.kvArgs.count("duration"))
       {
-        duration = atv::parseInt(kv.at("duration")).value_or(60);
+        duration = atv::parseInt(desc.kvArgs.at("duration")).value_or(defaultDuration);
       }
-      bool powerUpDown = kv.count("powerup");
-      bool fixSettings = kv.count("fixsettings");
-      int fps = 30;
-      if (kv.count("fps"))
+
+      bool powerUpDown = desc.kvArgs.count("powerup");
+      bool fixSettings = desc.kvArgs.count("fixsettings");
+
+      const int defaultFps = 30;
+      int fps = defaultFps;
+      if (desc.kvArgs.count("fps"))
       {
-        fps = atv::parseInt(kv.at("fps")).value_or(30);
+        fps = atv::parseInt(desc.kvArgs.at("fps")).value_or(defaultFps);
       }
 
       control = std::make_shared<RandomControl>(fixSettings, fps, duration, powerUpDown);
     }
-    else if (stype == "gui")
+    else if (desc.className == "gui")
     {
       throw std::runtime_error("GUI control is not implemented yet");
     }
     else
     {
-      throw std::runtime_error("Unknown source type: " + stype);
+      throw std::runtime_error("Unknown source type: " + desc.className);
     }
   }
   else
   {
-    // TODO: load json with settings
+    // TODO: load json with settings from desc.varArgs[0]
     throw std::runtime_error("JSON loading is not implemented yet");
   }
 

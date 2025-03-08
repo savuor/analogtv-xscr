@@ -73,25 +73,22 @@ void VideoOutput::send(const cv::Mat &m)
     writer.write(out);
 }
 
-std::shared_ptr<Output> Output::create(const std::string &s, cv::Size imgSize)
+std::shared_ptr<Output> Output::create(const ParametricString& s, cv::Size imgSize)
 {
-    std::vector<std::string> tokens = atv::split(s, ':');
-    if (tokens[0].empty())
+    if (!s.className.empty())
     {
-        // string starts with ":"
-        std::string name = tokens[1];
-        if (name == "highgui")
+        if (s.className == "highgui")
         {
             return std::make_shared<HighguiOutput>();
         }
         else
         {
-            throw std::runtime_error("Unknown video output: " + name);
+            throw std::runtime_error("Unknown video output: " + s.className);
         }
     }
     else
     {
-        return std::make_shared<VideoOutput>(s, imgSize);
+        return std::make_shared<VideoOutput>(s.varArgs[0], imgSize);
     }
 }
 

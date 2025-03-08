@@ -401,27 +401,17 @@ void VideoSource::update(AnalogInput& input, double time)
 
 
 // the sources can be tuned later for different size or other params
-std::shared_ptr<Source> Source::create(const std::string& srcStr)
+std::shared_ptr<Source> Source::create(const atv::ParametricString& desc)
 {
   std::shared_ptr<Source> src;
-  std::vector<std::string> tokens = atv::split(srcStr, ':');
 
-  if (tokens[0].empty())
+  if (!desc.className.empty())
   {
-    // string starts from ":"
-    if (tokens.size() < 2)
-    {
-      throw std::runtime_error("Source type not given");
-    }
-    std::string stype = tokens[1];
-    std::string arg = tokens.size() > 2 ? tokens[2] : std::string();
-
-    std::map<std::string, std::string> kv = parseKeyValues(tokens);
-    kv.erase(stype);
-    bool timestamp = kv.count("timestamp") > 0;
+    bool timestamp = desc.kvArgs.count("timestamp") > 0;
+    std::string arg = desc.varArgs[0];
 
     // should be like ":bars" or ":bars:/path/to/image:params"
-    if (stype == "bars")
+    if (desc.className == "bars")
     {
       cv::Mat logo;
       if (!arg.empty())
@@ -431,29 +421,30 @@ std::shared_ptr<Source> Source::create(const std::string& srcStr)
       src = std::make_shared<BarsSource>(logo, timestamp);
     }
     // should be like ":cam" or ":cam:number"
-    else if (stype == "cam")
+    else if (desc.className == "cam")
     {
       int nCam = arg.empty() ? 0 : parseInt(arg).value_or(0);
       src = std::make_shared<VideoSource>(nCam, timestamp);
     }
     // should be like ":video:/path/to/video:params"
-    else if (stype == "video")
+    else if (desc.className == "video")
     {
       src = std::make_shared<VideoSource>(arg, timestamp);
     }
     // should be like ":image:/path/to/image/:params"
-    else if (stype == "image")
+    else if (desc.className == "image")
     {
       cv::Mat img = loadImage(arg);
       src = std::make_shared<ImageSource>(img, timestamp);
     }
     else
     {
-        throw std::runtime_error("Unknown source type: " + stype);
+        throw std::runtime_error("Unknown source type: " + desc.className);
     }
   }
   else
   {
+    std::string srcStr = desc.varArgs[0];
     const std::set<std::string> knownVideoExtensions = {
       "h264", "h265",
       "mpeg2", "mpeg4", "mp4", "mjpeg", "mpg",

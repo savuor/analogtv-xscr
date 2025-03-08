@@ -45,6 +45,36 @@ std::map<std::string, std::string> parseKeyValues(const std::vector<std::string>
 }
 
 
+ParametricString ParametricString::parse(const std::string& desc)
+{
+  ParametricString ps;
+
+  std::vector<std::string> tokens = atv::split(desc, ':');
+
+  if (tokens[0].empty())
+  {
+    // string starts from ":"
+    if (tokens.size() < 2)
+    {
+      throw std::runtime_error("Class type for a parametric string is not given");
+    }
+    ps.className = tokens[1];
+    // keys and values should not include the class name and the first empty string
+    tokens.erase(tokens.begin(), tokens.begin() + 2);
+
+    ps.varArgs = tokens;
+    ps.kvArgs = parseKeyValues(tokens);
+  }
+  else
+  {
+    // do not split the incoming string
+    ps.varArgs = { desc };
+  }
+
+  return ps;
+}
+
+
 cv::Mat drawTime(double time)
 {
   int hours = time / 3600.0;
@@ -146,7 +176,7 @@ bool isArgName(const std::string &arg)
     return arg.length() > 2 && arg[0] == '-' && arg[1] == '-';
 }
 
-typedef std::variant<bool, int, std::string, std::vector<int>, std::vector<std::string>> ArgType;
+
 std::map<std::string, ArgType> parseCmdArgs(const std::map<std::string, CmdArgument> &knownArgs, int nArgs, char **argv)
 {
     std::map<std::string, ArgType> usedArgs;
@@ -215,7 +245,7 @@ std::map<std::string, ArgType> parseCmdArgs(const std::map<std::string, CmdArgum
                 std::cerr << "Argument \"" << name << "\" requires string argument" << std::endl;
                 return {};
             }
-            value = std::string(argv[i]);
+            value = ParametricString::parse(argv[i]);
             break;
         }
         case CmdArgument::Type::LIST_INT:
@@ -249,7 +279,7 @@ std::map<std::string, ArgType> parseCmdArgs(const std::map<std::string, CmdArgum
         }
         case CmdArgument::Type::LIST_STRING:
         {
-            std::vector<std::string> listStr;
+            std::vector<ParametricString> listStr;
             while (++i < nArgs)
             {
                 if (isArgName(argv[i]))
@@ -257,7 +287,7 @@ std::map<std::string, ArgType> parseCmdArgs(const std::map<std::string, CmdArgum
                     i--;
                     break;
                 }
-                listStr.push_back(argv[i]);
+                listStr.push_back(ParametricString::parse(argv[i]));
             }
 
             if (listStr.empty())

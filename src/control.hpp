@@ -2,6 +2,7 @@
 
 #include "precomp.hpp"
 
+#include "utils.hpp"
 #include "analogtv.hpp"
 #include "source.hpp"
 
@@ -35,7 +36,7 @@ struct Control
     int channel;
   };
 
-  static std::shared_ptr<Control> create(const std::string& desc);
+  static std::shared_ptr<Control> create(const atv::ParametricString& desc);
 
   virtual void setRNG(uint64_t rngSeed) = 0;
 

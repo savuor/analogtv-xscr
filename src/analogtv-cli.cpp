@@ -29,9 +29,9 @@ struct Params
   int         seed;
   cv::Size    size;
 
-  std::string controlDescription;
-  std::vector<std::string> sources;
-  std::vector<std::string> outputs;
+  atv::ParametricString controlDescription;
+  std::vector<atv::ParametricString> sources;
+  std::vector<atv::ParametricString> outputs;
 };
 
 
@@ -216,9 +216,9 @@ std::optional<Params> parseParams(int args, char** argv)
   }
 
   Params p;
-  p.sources  = std::get<std::vector<std::string>>(usedArgs.at("in"));
-  p.outputs  = std::get<std::vector<std::string>>(usedArgs.at("out"));
-  p.controlDescription = std::get<std::string>(usedArgs.at("control"));
+  p.sources  = std::get<std::vector<atv::ParametricString>>(usedArgs.at("in"));
+  p.outputs  = std::get<std::vector<atv::ParametricString>>(usedArgs.at("out"));
+  p.controlDescription = std::get<atv::ParametricString>(usedArgs.at("control"));
 
   p.verbosity = 0;
   if (usedArgs.count("verbose"))
