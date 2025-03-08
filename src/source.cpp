@@ -327,13 +327,13 @@ void VideoSource::init(bool showTimestamp)
   }
 
   this->frameSize = { (int)cap.get(cv::CAP_PROP_FRAME_WIDTH), (int)cap.get(cv::CAP_PROP_FRAME_HEIGHT)};
+  this->fps = cap.get(cv::CAP_PROP_FPS);
   this->fittedSize = this->frameSize;
 
   Log::write(2, "reading from " + (isCamera ? ("cam #" + std::to_string(nCamera)) : videoFileName) + " " +
-                std::to_string(frameSize.width) + "x" + std::to_string(frameSize.height));
+                std::to_string(frameSize.width) + "x" + std::to_string(frameSize.height) + " " + std::to_string(this->fps) + " FPS");
 
   this->lastGrabTime = -std::numeric_limits<double>::max();
-  this->fps = cap.get(cv::CAP_PROP_FPS);
 
   this->displayTimestamp = showTimestamp;
 }
@@ -354,11 +354,12 @@ void VideoSource::update(AnalogInput& input, double time)
 {
   cv::Mat frame, prepared;
 
-  if (time - lastGrabTime >= 1.0 / this->fps)
+  if (time - lastGrabTime >= 2.0 / this->fps)
   {
     if (!isCamera)
     {
       cap.set(cv::CAP_PROP_POS_MSEC, time * 1000.0);
+      Log::write(2, "Video seek to " + std::to_string(time));
     }
     cap.grab();
     this->lastGrabTime = time;
