@@ -62,31 +62,6 @@ void AnalogInput::setup_sync(int do_cb, int do_ssavi)
   mask: BlackPixel means don't render (it's not full alpha)
 */
 
-struct Color
-{
-  uint16_t red;
-  uint16_t green;
-  uint16_t blue;
-};
-
-inline Color pixToColor(uint32_t p)
-{
-  // uint16_t r = (p & 0x00FF0000L) >> 16;
-  // uint16_t g = (p & 0x0000FF00L) >> 8;
-  // uint16_t b = (p & 0x000000FFL);
-  uint16_t r = (p >> 16) & 0xFF;
-  uint16_t g = (p >>  8) & 0xFF;
-  uint16_t b = (p      ) & 0xFF;
-  Color c;
-  c.red   = r | (r<<8);
-  c.green = g | (g<<8);
-  c.blue  = b | (b<<8);
-  // c.red   = (r<<8);
-  // c.green = (g<<8);
-  // c.blue  = (b<<8);
-  return c;
-}
-
 void AnalogInput::load_ximage(const cv::Mat4b& pic_im, const cv::Mat4b& mask_im,
                               int xoff, int yoff, int target_w, int target_h, int out_w, int out_h)
 {
@@ -121,22 +96,53 @@ void AnalogInput::load_ximage(const cv::Mat4b& pic_im, const cv::Mat4b& mask_im,
         int picy1 = (y*img_h                 )/y_scanlength;
         int picy2 = (y*img_h + y_scanlength/2)/y_scanlength;
 
-        Color col1[ANALOGTV_PIC_LEN];
-        Color col2[ANALOGTV_PIC_LEN];
+        cv::Vec4b col1[ANALOGTV_PIC_LEN];
+        cv::Vec4b col2[ANALOGTV_PIC_LEN];
         char mask[ANALOGTV_PIC_LEN];
 
-        uint32_t* rowIm1 = (uint32_t*)(pic_im.data + picy1 * pic_im.step);
-        uint32_t* rowIm2 = (uint32_t*)(pic_im.data + picy2 * pic_im.step);
+        const cv::Vec4b* rowIm1 = pic_im[picy1];
+        const cv::Vec4b* rowIm2 = pic_im[picy2];
+
         uint32_t* rowMask1 = mask_im.data ? (uint32_t*)(mask_im.data + picy1 * mask_im.step) : nullptr;
         for (int x = 0; x < x_length; x++)
         {
             int picx = (x*img_w) / x_length;
-            col1[x] = pixToColor(rowIm1[picx]);
-            col2[x] = pixToColor(rowIm2[picx]);
+            col1[x] = rowIm1[picx];
+            col2[x] = rowIm2[picx];
             if (rowMask1)
                 mask[x] = (rowMask1[picx] != 0);
             else
                 mask[x] = 1;
+        }
+
+        int rowY[ANALOGTV_PIC_LEN];
+        int rowI[ANALOGTV_PIC_LEN];
+        int rowQ[ANALOGTV_PIC_LEN];
+        for (int x = 0; x < x_length; x++)
+        {
+            int r1 = col1[x][2];
+            int g1 = col1[x][1];
+            int b1 = col1[x][0];
+            int r2 = col2[x][2];
+            int g2 = col2[x][1];
+            int b2 = col2[x][0];
+
+            /* Compute YIQ as:
+            y=0.30 r + 0.59 g + 0.11 b
+            i=0.60 r - 0.28 g - 0.32 b
+            q=0.21 r - 0.52 g + 0.31 b
+            The coefficients below are in .4 format */
+
+            int rawy = (( 5*r1 + 11*g1 + 2*b1 +
+                          5*r2 + 11*g2 + 2*b2) * 257) >>7;
+            int rawi = ((10*r1 -  4*g1 - 5*b1 +
+                         10*r2 -  4*g2 - 5*b2) * 257) >>7;
+            int rawq = (( 3*r1 -  8*g1 + 5*b1 +
+                          3*r2 -  8*g2 + 5*b2) * 257) >>7;
+
+            rowY[x] = rawy;
+            rowI[x] = rawi;
+            rowQ[x] = rawq;
         }
 
         int fyx[7], fyy[7];
@@ -148,31 +154,11 @@ void AnalogInput::load_ximage(const cv::Mat4b& pic_im, const cv::Mat4b& mask_im,
         signed char* sigRow = this->sigMat[y - y_overscan + ANALOGTV_TOP + yoff];
         for (int x = 0; x < x_length; x++)
         {
-            int rawy,rawi,rawq;
-            int filty,filti,filtq;
-            int composite;
-
             if (!mask[x]) continue;
 
-            uint16_t r1 = col1[x].red;
-            uint16_t g1 = col1[x].green;
-            uint16_t b1 = col1[x].blue;
-            uint16_t r2 = col2[x].red;
-            uint16_t g2 = col2[x].green;
-            uint16_t b2 = col2[x].blue;
-
-            /* Compute YIQ as:
-            y=0.30 r + 0.59 g + 0.11 b
-            i=0.60 r - 0.28 g - 0.32 b
-            q=0.21 r - 0.52 g + 0.31 b
-            The coefficients below are in .4 format */
-
-            rawy = ( 5*r1 + 11*g1 + 2*b1 +
-                     5*r2 + 11*g2 + 2*b2)>>7;
-            rawi = (10*r1 -  4*g1 - 5*b1 +
-                    10*r2 -  4*g2 - 5*b2)>>7;
-            rawq = ( 3*r1 -  8*g1 + 5*b1 +
-                     3*r2 -  8*g2 + 5*b2)>>7;
+            int rawy = rowY[x];
+            int rawi = rowI[x];
+            int rawq = rowQ[x];
 
             /* Filter y at with a 4-pole low-pass Butterworth filter at 3.5 MHz
             with an extra zero at 3.5 MHz, from
@@ -185,7 +171,7 @@ void AnalogInput::load_ximage(const cv::Mat4b& pic_im, const cv::Mat4b& mask_im,
             fyy[3] = fyy[4]; fyy[4] = fyy[5]; fyy[5] = fyy[6];
             fyy[6] = (fyx[0]+fyx[6]) + 4*(fyx[1]+fyx[5]) + 7*(fyx[2]+fyx[4]) + 8*fyx[3]
                    + ((-151*fyy[2] + 8115*fyy[3] - 38312*fyy[4] + 36586*fyy[5]) >> 16);
-            filty = fyy[6];
+            int filty = fyy[6];
 
             /* Filter I at 1.5 MHz. 3 pole Butterworth from
             mkfilter -Bu -Lp -o 3 -a 1.0714285714e-01 0 */
@@ -195,7 +181,7 @@ void AnalogInput::load_ximage(const cv::Mat4b& pic_im, const cv::Mat4b& mask_im,
             fiy[0] = fiy[1]; fiy[1] = fiy[2]; fiy[2] = fiy[3];
             fiy[3] = (fix[0]+fix[3]) + 3*(fix[1]+fix[2])
                    + ((16559*fiy[0] - 72008*fiy[1] + 109682*fiy[2]) >> 16);
-            filti = fiy[3];
+            int filti = fiy[3];
 
             /* Filter Q at 0.5 MHz. 3 pole Butterworth from
             mkfilter -Bu -Lp -o 3 -a 3.5714285714e-02 0 -l */
@@ -205,9 +191,9 @@ void AnalogInput::load_ximage(const cv::Mat4b& pic_im, const cv::Mat4b& mask_im,
             fqy[0] = fqy[1]; fqy[1] = fqy[2]; fqy[2] = fqy[3];
             fqy[3] = (fqx[0]+fqx[3]) + 3 * (fqx[1]+fqx[2])
                    + ((2612*fqy[0] - 9007*fqy[1] + 10453 * fqy[2]) >> 12);
-            filtq = fqy[3];
+            int filtq = fqy[3];
 
-            composite = filty + ((multiq[x] * filti + multiq[x+3] * filtq)>>12);
+            int composite = filty + ((multiq[x] * filti + multiq[x+3] * filtq)>>12);
             composite = ((composite*100)>>14) + ANALOGTV_BLACK_LEVEL;
             composite = std::clamp(composite, 0, 125);
 
