@@ -398,21 +398,20 @@ void AnalogTV::ntsc_to_yiq(int lineno, unsigned int signal_offset, int start, in
   }
 #endif
 
-  //TODO: no ptr arithmetics, use idx
-  float delay[MAXDELAY + ANALOGTV_PIC_LEN], *dp;
+  float delay[MAXDELAY + ANALOGTV_PIC_LEN];
 
-  dp = delay + ANALOGTV_PIC_LEN - MAXDELAY;
-  for (int i = 0; i < 5; i++) dp[i]=0.0f;
+  int delayPtr = ANALOGTV_PIC_LEN - MAXDELAY;
+  for (int i = 0; i < 5; i++) delay[i + delayPtr]=0.0f;
 
   assert(start >= 0);
   assert(end < ANALOGTV_PIC_LEN + 10);
 
-  dp = delay + ANALOGTV_PIC_LEN - MAXDELAY;
-  for (int i = 0; i < 24; i++) dp[i]=0.0;
+  delayPtr = ANALOGTV_PIC_LEN - MAXDELAY;
+  for (int i = 0; i < 24; i++) delay[delayPtr + i]=0.0;
 
   float brightadd = this->brightness_control * 100.0 - ANALOGTV_BLACK_LEVEL;
 
-  for (int i = start; i < end; i++, dp--)
+  for (int i = start; i < end; i++, delayPtr--)
   {
     /* Now filter them. These are infinite impulse response filters
        calculated by the script at
@@ -431,22 +430,22 @@ void AnalogTV::ntsc_to_yiq(int lineno, unsigned int signal_offset, int start, in
        Delay about 2 */
 
     float sig = signal[i];
-    dp[0] = sig * 0.0469904257251935f * this->agclevel;
-    dp[8] = (+1.0f*(dp[6]+dp[0])
-             +4.0f*(dp[5]+dp[1])
-             +7.0f*(dp[4]+dp[2])
-             +8.0f*(dp[3])
-             -0.0176648f*dp[12]
-             -0.4860288f*dp[10]);
-    it_yiq[i].y = dp[8] + brightadd;
+    delay[delayPtr + 0] = sig * 0.0469904257251935f * this->agclevel;
+    delay[delayPtr + 8] = +1.0f*(delay[delayPtr + 6] + delay[delayPtr + 0])
+                          +4.0f*(delay[delayPtr + 5] + delay[delayPtr + 1])
+                          +7.0f*(delay[delayPtr + 4] + delay[delayPtr + 2])
+                          +8.0f*(delay[delayPtr + 3])
+                          -0.0176648f * delay[delayPtr + 12]
+                          -0.4860288f * delay[delayPtr + 10];
+    it_yiq[i].y = delay[delayPtr + 8] + brightadd;
   }
 
   if (colormode)
   {
-    dp = delay + ANALOGTV_PIC_LEN - MAXDELAY;
-    for (int i = 0; i < 27; i++) dp[i]=0.0;
+    delayPtr = ANALOGTV_PIC_LEN - MAXDELAY;
+    for (int i = 0; i < 27; i++) delay[delayPtr + i]=0.0;
 
-    for (int i = start; i < end; i++, dp--)
+    for (int i = start; i < end; i++, delayPtr--)
     {
       float sig = signal[i];
 
@@ -456,18 +455,20 @@ void AnalogTV::ntsc_to_yiq(int lineno, unsigned int signal_offset, int start, in
          Delay about 3.
       */
 
-      dp[0] = sig*multiq2[i&3] * 0.0833333333333f;
-      it_yiq[i].i = dp[8] = (dp[5] + dp[0]
-                            +3.0f*(dp[4] + dp[1])
-                            +4.0f*(dp[3] + dp[2])
-                            -0.3333333333f * dp[10]);
+      delay[delayPtr + 0] = sig*multiq2[i&3] * 0.0833333333333f;
+      it_yiq[i].i = delay[delayPtr + 8] =
+                    +1.0f*(delay[delayPtr + 5] + delay[delayPtr + 0])
+                    +3.0f*(delay[delayPtr + 4] + delay[delayPtr + 1])
+                    +4.0f*(delay[delayPtr + 3] + delay[delayPtr + 2])
+                    -0.3333333333f * delay[delayPtr + 10];
 
-      dp[16] = sig*multiq2[(i+3)&3] * 0.0833333333333f;
+      delay[delayPtr + 16] = sig*multiq2[(i+3)&3] * 0.0833333333333f;
 
-      it_yiq[i].q = dp[24] = (dp[16+5] + dp[16+0]
-                             +3.0f*(dp[16+4] + dp[16+1])
-                             +4.0f*(dp[16+3] + dp[16+2])
-                             -0.3333333333f * dp[24+2]);
+      it_yiq[i].q = delay[delayPtr + 24] =
+                    +1.0f*(delay[delayPtr + (16+5)] + delay[delayPtr + (16+0)])
+                    +3.0f*(delay[delayPtr + (16+4)] + delay[delayPtr + (16+1)])
+                    +4.0f*(delay[delayPtr + (16+3)] + delay[delayPtr + (16+2)])
+                    -0.3333333333f * delay[delayPtr + (24+2)];
     }
   }
   else
