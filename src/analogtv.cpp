@@ -79,11 +79,6 @@ namespace atv
 
 /* #define DEBUG 1 */
 
-#define FASTRND_A 1103515245
-#define FASTRND_C 12345
-#define FASTRND (fastrnd = fastrnd*FASTRND_A+FASTRND_C)
-
-
 constexpr float puramp(float powerUp, float tc, float start, float over)
 {
   float pt = powerUp - start;
@@ -686,6 +681,9 @@ static unsigned int rnd_seek(unsigned a, unsigned c, unsigned rnd, unsigned dist
   return a * rnd + c;
 }
 
+
+#define FASTRND_A 1103515245
+#define FASTRND_C 12345
 
 // generating uniform value from -range to range
 float getUniformSymmetrical(unsigned int& fastrnd, float range)
