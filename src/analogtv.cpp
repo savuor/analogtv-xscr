@@ -152,12 +152,8 @@ void AnalogTV::configure(int _outWidth, int _outHeight)
   int wlim = this->outWidth;
   ratio = wlim / (float) hlim;
 
-// NO_CONSTRAIN_RATIO is defined
-//#if defined(HAVE_MOBILE) || defined(NO_CONSTRAIN_RATIO)
-  /* Fill the whole iPhone screen, even though that distorts the image. */
   min_ratio = 0;
   max_ratio = 10;
-//#endif
 
   std::string debugPrint1 = std::to_string(wlim) + "x" + std::to_string(hlim);
   std::string debugPrint2 = " in " + std::to_string(this->outWidth) + "x" + std::to_string(this->outHeight);
@@ -309,32 +305,7 @@ AnalogTV::AnalogTV(int seed) :
 */
 // analogtv_set_demod(analogtv *it) was removed
 
-#if 0
-unsigned int
-analogtv_line_signature(analogtv_input *input, int lineno)
-{
-  int i;
-  char *origsignal=&input->signal[(lineno+input->vsync)
-                                  %ANALOGTV_V][input->line_hsync[lineno]];
-  unsigned int hash=0;
-
-  /* probably lame */
-  for (i=0; i<ANALOGTV_PIC_LEN; i++) {
-    int c=origsignal[i];
-    hash = hash + (hash<<17) + c;
-  }
-
-  hash += input->line_hsync[lineno];
-  hash ^= hash >> 2;
-  /*
-  hash += input->hashnoise_times[lineno];
-  hash ^= hash >> 2;
-  */
-
-  return hash;
-}
-#endif
-
+// analogtv_line_signature was removed
 
 /* Here we model the analog circuitry of an NTSC television.
    Basically, it splits the signal into 3 signals: Y, I and Q. Y
@@ -386,17 +357,17 @@ void AnalogTV::ntsc_to_yiq(int lineno, unsigned int signal_offset, int start, in
     }
   }
 
-#if 0
-  if (lineno==100) {
-    printf("multiq = [%0.3f %0.3f %0.3f %0.3f] ",
-           this->multiq[60], this->multiq[61], this->multiq[62], this->multiq[63]);
-    printf("it->line_cb_phase = [%0.3f %0.3f %0.3f %0.3f]\n",
-           this->line_cb_phase[lineno][0], this->line_cb_phase[lineno][1],
-           this->line_cb_phase[lineno][2], this->line_cb_phase[lineno][3]);
-    printf("multiq2 = [%0.3f %0.3f %0.3f %0.3f]\n",
-           multiq2[0],multiq2[1],multiq2[2],multiq2[3]);
-  }
-#endif
+  //TODO: debug logs?
+  // if (lineno==100)
+  // {
+  //   printf("multiq = [%0.3f %0.3f %0.3f %0.3f] ",
+  //          this->multiq[60], this->multiq[61], this->multiq[62], this->multiq[63]);
+  //   printf("it->line_cb_phase = [%0.3f %0.3f %0.3f %0.3f]\n",
+  //          this->line_cb_phase[lineno][0], this->line_cb_phase[lineno][1],
+  //          this->line_cb_phase[lineno][2], this->line_cb_phase[lineno][3]);
+  //   printf("multiq2 = [%0.3f %0.3f %0.3f %0.3f]\n",
+  //          multiq2[0],multiq2[1],multiq2[2],multiq2[3]);
+  // }
 
   float delay[MAXDELAY + ANALOGTV_PIC_LEN];
 
@@ -496,12 +467,6 @@ void AnalogTV::setup_frame()
                           this->rng.uniform(-0x80, 0x80) * 0.000001;
   }
 
-  /* it wasn't used
-  for (i=0; i<ANALOGTV_V; i++) {
-    this->hashnoise_times[i]=0;
-  }
-  */
-
   /* let's leave it to process shrinkpulse */
   if (this->hashnoise_enable && !this->hashnoise_on)
   {
@@ -516,55 +481,16 @@ void AnalogTV::setup_frame()
     this->hashnoise_on = 0;
   }
 
-#if 0  /* never used */
-  if (it->hashnoise_on) {
-    it->hashnoise_rpm += (15000.0 - it->hashnoise_rpm)*0.05 +
-      ((int)(ya_random()%2000)-1000)*0.1;
-  } else {
-    it->hashnoise_rpm -= 100 + 0.01*it->hashnoise_rpm;
-    if (it->hashnoise_rpm<0.0) it->hashnoise_rpm=0.0;
-  }
-  if (it->hashnoise_rpm > 0.0) {
-    int hni;
-    double hni_double;
-    int hnc=it->hashnoise_counter; /* in 24.8 format */
-
-    /* Convert rpm of a 16-pole motor into dots in 24.8 format */
-    hni_double = ANALOGTV_V * ANALOGTV_H * 256.0 /
-                (it->hashnoise_rpm * 16.0 / 60.0 / 60.0);
-    hni = (hni_double <= INT_MAX) ? (int)hni_double : INT_MAX;
-
-    while (hnc < (ANALOGTV_V * ANALOGTV_H)<<8) {
-      y=(hnc>>8)/ANALOGTV_H;
-      x=(hnc>>8)%ANALOGTV_H;
-
-      if (x>0 && x<ANALOGTV_H - ANALOGTV_HASHNOISE_LEN) {
-        it->hashnoise_times[y]=x;
-      }
-      /* hnc += hni + (int)(ya_random()%65536)-32768; */
-      {
-        hnc += (int)(ya_random()%65536)-32768;
-        if ((hnc >= 0) && (INT_MAX - hnc < hni)) break;
-        hnc += hni;
-      }
-    }
-  }
-#endif /* 0 */
-
-/*    hnc -= (ANALOGTV_V * ANALOGTV_H)<<8;*/
-
-
   if (std::abs(this->rx_signal_level) > std::numeric_limits<double>::epsilon())
     this->agclevel = 1.0/this->rx_signal_level;
 
 //TODO: make logs
-#ifdef DEBUG2
-  printf("filter: ");
-  for (i=0; i<ANALOGTV_GHOSTFIR_LEN; i++) {
-    printf(" %0.3f",this->ghostfir[i]);
-  }
-  printf(" siglevel=%g agc=%g\n", siglevel, this->agclevel);
-#endif
+  // printf("filter: ");
+  // for (i=0; i<ANALOGTV_GHOSTFIR_LEN; i++)
+  // {
+  //   printf(" %0.3f",this->ghostfir[i]);
+  // }
+  // printf(" siglevel=%g agc=%g\n", siglevel, this->agclevel);
 }
 
 
@@ -653,12 +579,10 @@ void AnalogTV::sync()
       }
     }
 
-#ifdef DEBUG
-    if (0) printf("hs=%d cb=[%0.3f %0.3f %0.3f %0.3f]\n",
-                  cur_hsync,
-                  this->cb_phase[0], this->cb_phase[1],
-                  this->cb_phase[2], this->cb_phase[3]);
-#endif
+    // printf("hs=%d cb=[%0.3f %0.3f %0.3f %0.3f]\n",
+    //               cur_hsync,
+    //               this->cb_phase[0], this->cb_phase[1],
+    //               this->cb_phase[2], this->cb_phase[3]);
 
     /* if (ya_random()%2000==0) cur_hsync=ya_random()%ANALOGTV_H; */
   }
@@ -878,10 +802,7 @@ int AnalogTV::get_line(int lineno, int *slineno, int *ytop, int *ybot, unsigned 
   *slineno = lineno - ANALOGTV_TOP;
   *ytop = (int)(((lineno - ANALOGTV_TOP  ) * this->useheight / ANALOGTV_VISLINES - this->useheight/2) * this->puheight) + this->useheight/2;
   *ybot = (int)(((lineno - ANALOGTV_TOP+1) * this->useheight / ANALOGTV_VISLINES - this->useheight/2) * this->puheight) + this->useheight/2;
-#if 0
-  int linesig=analogtv_line_signature(input,lineno)
-    + it->hashnoise_times[lineno];
-#endif
+
   *signal_offset = ((lineno + this->cur_vsync+ANALOGTV_V) % ANALOGTV_V) * ANALOGTV_H +
                     this->line_hsync[lineno];
 
@@ -982,14 +903,12 @@ void AnalogTV::parallel_for_draw_lines(const cv::Range& range)
 
     assert(scanstart_i>=0);
 
-#ifdef DEBUG
-      if (0) printf("scan %d: %0.3f %0.3f %0.3f scl=%d scr=%d scw=%d\n",
-                    lineno,
-                    scanstart_i/65536.0f,
-                    squishright_i/65536.0f,
-                    scanend_i/65536.0f,
-                    scl,scr,scw);
-#endif
+    // printf("scan %d: %0.3f %0.3f %0.3f scl=%d scr=%d scw=%d\n",
+    //                 lineno,
+    //                 scanstart_i/65536.0f,
+    //                 squishright_i/65536.0f,
+    //                 scanend_i/65536.0f,
+    //                 scl,scr,scw);
 
     struct analogtv_yiq_s yiq[ANALOGTV_PIC_LEN+10];
     this->ntsc_to_yiq(lineno, signal_offset, (scanstart_i>>16)-10, (scanend_i>>16)+10, yiq);
@@ -1172,21 +1091,6 @@ void AnalogTV::draw(double noiselevel, const std::vector<AnalogReception>& recep
       this->shrinkpulse=-1;
     }
 
-#if 0
-    if (it->hashnoise_rpm>0.0 &&
-        !(bigloadchange ||
-         // it->redraw_all ||
-          (slineno<20 && it->flutter_horiz_desync) ||
-          it->gaussiannoise_level>30 ||
-          ((it->gaussiannoise_level>2.0 ||
-            it->multipath) && ya_random()%4) ||
-          linesig != it->onscreen_signature[lineno])) {
-      continue;
-    }
-    it->onscreen_signature[lineno] = linesig;
-#endif
-    /*    drawcount++;*/
-
     /*
       Interpolate the 600-dotclock line into however many horizontal
       screen pixels we're using, and convert to RGB.
@@ -1244,22 +1148,6 @@ void AnalogTV::draw(double noiselevel, const std::vector<AnalogReception>& recep
     this->parallel_for_draw_lines(r);
   });
 
-#if 0
-  /* poor attempt at visible retrace */
-  for (i=0; i<15; i++) {
-    int ytop=(int)((i*it->useheight/15 -
-                    it->useheight/2)*puheight) + it->useheight/2;
-    int ybot=(int)(((i+1)*it->useheight/15 -
-                    it->useheight/2)*puheight) + it->useheight/2;
-    int div=it->usewidth*3/2;
-
-    for (x=0; x<it->usewidth; x++) {
-      y = ytop + (ybot-ytop)*x / div;
-      if (y<0 || y>=it->useheight) continue;
-      *(uint32_t*)(it->image->data + y * it->image->bytes_per_line + x * sizeof(uint32_t)) = (uint32_t) 0xffffff;
-    }
-  }
-#endif
 
   /*
     Subtle change: overall_bot was the bottom of the last scan line. Now it's
@@ -1299,63 +1187,6 @@ void AnalogTV::draw(double noiselevel, const std::vector<AnalogReception>& recep
     this->image(cv::Rect(0, overall_top, w, h)).copyTo(outBuffer(cv::Rect(screen_xo, dest_y, w, h)));
   }
 }
-
-
-#if 0
-void analogtv_channel_noise(analogtv_input *it, analogtv_input *s2)
-{
-  int x,y,newsig;
-  int change=ya_random()%ANALOGTV_V;
-  unsigned int fastrnd=ya_random();
-  double hso=(int)(ya_random()%1000)-500;
-  int yofs=ya_random()%ANALOGTV_V;
-  int noise;
-
-  for (y=change; y<ANALOGTV_V; y++) {
-    int s2y=(y+yofs)%ANALOGTV_V;
-    int filt=0;
-    int noiselevel=60000 / (y-change+100);
-
-    it->line_hsync[y] = s2->line_hsync[y] + (int)hso;
-    hso *= 0.9;
-    for (x=0; x<ANALOGTV_H; x++) {
-      FASTRND;
-      filt+= (-filt/16) + (int)(fastrnd&0xfff)-0x800;
-      noise=(filt*noiselevel)>>16;
-      newsig=s2->signal[s2y][x] + noise;
-      if (newsig>120) newsig=120;
-      if (newsig<0) newsig=0;
-      it->signal[y][x]=newsig;
-    }
-  }
-  s2->vsync=yofs;
-}
-#endif
-
-
-#ifdef FIXME
-/* add hash */
-  if (it->hashnoise_times[lineno]) {
-    int hnt=it->hashnoise_times[lineno] - input->line_hsync[lineno];
-
-    if (hnt>=0 && hnt<ANALOGTV_PIC_LEN) {
-      double maxampl=1.0;
-      double cur=ya_frand(150.0)-20.0;
-      int len=ya_random()%15+3;
-      if (len > ANALOGTV_PIC_LEN-hnt) len=ANALOGTV_PIC_LEN-hnt;
-      for (i=0; i<len; i++) {
-        double sig=signal[hnt];
-
-        sig += cur*maxampl;
-        cur += ya_frand(5.0)-5.0;
-        maxampl = maxampl*0.9;
-
-        signal[hnt]=sig;
-        hnt++;
-      }
-    }
-  }
-#endif
 
 
 void AnalogReception::update(cv::RNG& rng)
