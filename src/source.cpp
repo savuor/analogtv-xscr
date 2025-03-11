@@ -148,10 +148,6 @@ void BarsSource::update(AnalogInput& input, double time)
     cv::Mat osd = drawTime(time);
    input.load_ximage(osd, cv::Mat4b(), 240, 240, osd.cols, osd.rows, this->outSize.width, this->outSize.height);
   }
-
-  //DEBUG
-  // cv::Mat osd = drawTime(time);
-  // input.load_ximage(osd, cv::Mat4b(), 240, 240, osd.cols, osd.rows, this->outSize.width, this->outSize.height);
 }
 
 
