@@ -980,7 +980,7 @@ void AnalogTV::parallel_for_draw_lines(const cv::Range& range)
 }
 
 
-void AnalogTV::draw(double noiselevel, const std::vector<AnalogReception>& receptions, cv::Mat4b outBuffer)
+void AnalogTV::draw(double noiselevel, bool switchChannel, const std::vector<AnalogReception>& receptions, cv::Mat4b outBuffer)
 {
   /*  int bigloadchange,drawcount;*/
 
@@ -1009,7 +1009,7 @@ void AnalogTV::draw(double noiselevel, const std::vector<AnalogReception>& recep
   unsigned randVal1 = this->rng();
 
   assert (ANALOGTV_SIGNAL_LEN % 4 == 0);
-  cv::parallel_for_(cv::Range(0, ANALOGTV_SIGNAL_LEN), [this, &receptions, noiselevel, randVal0, randVal1](const cv::Range& r)
+  cv::parallel_for_(cv::Range(0, ANALOGTV_SIGNAL_LEN), [this, &receptions, noiselevel, switchChannel, randVal0, randVal1](const cv::Range& r)
   {
     unsigned start  = r.start;
     unsigned finish = r.end;
@@ -1029,7 +1029,8 @@ void AnalogTV::draw(double noiselevel, const std::vector<AnalogReception>& recep
       for (uint32_t i = 0; i < receptions.size(); ++i)
       {
         /* Sometimes start > ec. */
-        int ec = !i ? this->channel_change_cycles : 0;
+        int ec = (!i && switchChannel) ? this->channel_change_cycles : 0;
+
         int skip = ((int)start >= ec) ? 0 : std::min(ec, (int)end) - start;
 
         if (skip > 0)
@@ -1043,8 +1044,6 @@ void AnalogTV::draw(double noiselevel, const std::vector<AnalogReception>& recep
       start = end;
     }
   });
-
-  this->channel_change_cycles = 0;
 
   /* rx_signal has an extra 2 lines at the end, where we copy the
      first 2 lines so we can index into it while only worrying about

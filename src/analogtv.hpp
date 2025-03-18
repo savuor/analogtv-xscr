@@ -126,7 +126,7 @@ public:
 
   AnalogTV(int seed = 0);
   void configure(int outWidth, int outHeight);
-  void draw(double noiselevel, const std::vector<AnalogReception>& receptions, cv::Mat4b outBuffer);
+  void draw(double noiselevel, bool switchChannel, const std::vector<AnalogReception>& receptions, cv::Mat4b outBuffer);
 
 private:
   void  setup_frame();

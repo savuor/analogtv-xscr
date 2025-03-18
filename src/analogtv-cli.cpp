@@ -115,10 +115,7 @@ static void run(Params params)
 
     int curInput = action.channel;
 
-    if (action.type == atv::Control::Operation::Type::SWITCH)
-    {
-      tv.channel_change_cycles = 200000;
-    }
+    bool switchChannel = (action.type == atv::Control::Operation::Type::SWITCH);
 
     control->setTvControls(tv);
     double curTime = control->getTime();
@@ -132,7 +129,7 @@ static void run(Params params)
       rec.update(rng);
     }
 
-    tv.draw(curChannel.noise_level, curChannel.receptions, outBuffer);
+    tv.draw(curChannel.noise_level, switchChannel, curChannel.receptions, outBuffer);
 
     // Send rendered frame to outputs
     for (const auto& o : outputs)
