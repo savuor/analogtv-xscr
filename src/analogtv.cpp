@@ -1049,9 +1049,8 @@ void AnalogTV::draw(double noiselevel, const std::vector<AnalogReception>& recep
   /* rx_signal has an extra 2 lines at the end, where we copy the
      first 2 lines so we can index into it while only worrying about
      wraparound on a per-line level */
-  memcpy(&this->rx_signal[ANALOGTV_SIGNAL_LEN],
-         &this->rx_signal[0],
-         2*ANALOGTV_H*sizeof(this->rx_signal[0]));
+  std::copy(this->rx_signal.begin(), this->rx_signal.begin() + (2*ANALOGTV_H),
+            this->rx_signal.begin() + ANALOGTV_SIGNAL_LEN);
 
   this->sync(); /* Requires the add_signals be complete. */
 
