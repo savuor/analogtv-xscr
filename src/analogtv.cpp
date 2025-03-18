@@ -329,7 +329,6 @@ void AnalogTV::ntsc_to_yiq(int lineno, unsigned int signal_offset, int start, in
 {
   enum {MAXDELAY=32};
 
-  const float *signal = this->rx_signal.data() + signal_offset;
   int phasecorr = signal_offset & 3;
 
   float multiq2[4];
@@ -395,7 +394,7 @@ void AnalogTV::ntsc_to_yiq(int lineno, unsigned int signal_offset, int start, in
        mkfilter -Bu -Lp -o 4 -a 2.1428571429e-01 0 -Z 2.5e-01 -l
        Delay about 2 */
 
-    float sig = signal[i];
+    float sig = this->rx_signal[i + signal_offset];
     delay[delayPtr + 0] = sig * 0.0469904257251935f * this->agclevel;
     delay[delayPtr + 8] = +1.0f*(delay[delayPtr + 6] + delay[delayPtr + 0])
                           +4.0f*(delay[delayPtr + 5] + delay[delayPtr + 1])
@@ -413,7 +412,7 @@ void AnalogTV::ntsc_to_yiq(int lineno, unsigned int signal_offset, int start, in
 
     for (int i = start; i < end; i++, delayPtr--)
     {
-      float sig = signal[i];
+      float sig = this->rx_signal[i + signal_offset];
 
       /* Filter I and Q with a 3-pole low-pass Butterworth filter at
          1.5 MHz with an extra zero at 3.5 MHz, from
