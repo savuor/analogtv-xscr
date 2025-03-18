@@ -263,6 +263,7 @@ AnalogTV::AnalogTV(int seed) :
   //   double value;
   // } leveltable[ANALOGTV_MAX_LINEHEIGHT+1][ANALOGTV_MAX_LINEHEIGHT+1];
 
+  // preallocate for next frames
   this->rx_signal.resize(ANALOGTV_SIGNAL_LEN + 2*ANALOGTV_H);
 
   this->shrinkpulse = -1;
@@ -694,7 +695,7 @@ float getUniformSymmetrical(unsigned int& fastrnd, float range)
   return v;
 }
 
-void AnalogTV::init_signal(double noiselevel, unsigned start, unsigned end, unsigned randVal)
+void AnalogTV::init_signal(double noiselevel, unsigned start, unsigned end, unsigned randVal, std::vector<float>& rx_signal)
 {
   unsigned int fastrnd = rnd_seek(FASTRND_A, FASTRND_C, randVal, start);
 
@@ -706,12 +707,12 @@ void AnalogTV::init_signal(double noiselevel, unsigned start, unsigned end, unsi
   {
     nm2 = nm1;
     nm1 = getUniformSymmetrical(fastrnd, noiseSize);
-    this->rx_signal[i] = nm1 * nm2;
+    rx_signal[i] = nm1 * nm2;
   }
 }
 
 
-void AnalogTV::transit_channels(const AnalogReception& rec, unsigned start, int skip, unsigned randVal)
+void AnalogTV::transit_channels(const AnalogReception& rec, unsigned start, int skip, unsigned randVal, std::vector<float>& rx_signal)
 {
   const signed char* signal = rec.input.sigMat[0];
 
@@ -735,14 +736,14 @@ void AnalogTV::transit_channels(const AnalogReception& rec, unsigned start, int 
     float noise = getUniformSymmetrical(fastrnd, 50.f);
 
     int idx = (start + (unsigned)rec.ofs + i) % ANALOGTV_SIGNAL_LEN;
-    this->rx_signal[i] += (float)(signal[idx]) * level * (1.0f - noise_ampl) + noise * noise_ampl;
+    rx_signal[i] += (float)(signal[idx]) * level * (1.0f - noise_ampl) + noise * noise_ampl;
 
     noise_ampl *= noise_decay;
   }
 }
 
 
-void AnalogTV::add_signal(const AnalogReception& rec, unsigned start, unsigned end, int skip)
+void AnalogTV::add_signal(const AnalogReception& rec, unsigned start, unsigned end, int skip, std::vector<float>& rx_signal)
 {
   assert(((int)end - (int)start - skip) % 4 == 0);
 
@@ -786,10 +787,10 @@ void AnalogTV::add_signal(const AnalogReception& rec, unsigned start, unsigned e
             dp[3]*rec.ghostfir[2] + dp[4]*rec.ghostfir[3]);
     dp[4]=dp[3]; dp[3]=dp[2]; dp[2]=dp[1]; dp[1]=dp[0];
 
-    this->rx_signal[i + 0] += (sig0 + sigr + sig2 * hfloss) * level;
-    this->rx_signal[i + 1] += (sig1 + sigr + sig3 * hfloss) * level;
-    this->rx_signal[i + 2] += (sig2 + sigr + sig0 * hfloss) * level;
-    this->rx_signal[i + 3] += (sig3 + sigr + sig1 * hfloss) * level;
+    rx_signal[i + 0] += (sig0 + sigr + sig2 * hfloss) * level;
+    rx_signal[i + 1] += (sig1 + sigr + sig3 * hfloss) * level;
+    rx_signal[i + 2] += (sig2 + sigr + sig0 * hfloss) * level;
+    rx_signal[i + 3] += (sig3 + sigr + sig1 * hfloss) * level;
   }
 }
 
@@ -980,6 +981,59 @@ void AnalogTV::parallel_for_draw_lines(const cv::Range& range)
 }
 
 
+void AnalogTV::receive(double noiselevel, bool switchChannel, const std::vector<AnalogReception>& receptions, std::vector<float>& signalVec)
+{
+  unsigned randVal0 = this->rng();
+  unsigned randVal1 = this->rng();
+
+  int channelChangeCycles = this->channel_change_cycles;
+
+  assert (ANALOGTV_SIGNAL_LEN % 4 == 0);
+  cv::parallel_for_(cv::Range(0, ANALOGTV_SIGNAL_LEN),
+                    [&receptions, &signalVec, noiselevel, switchChannel, channelChangeCycles, randVal0, randVal1](const cv::Range& r)
+  {
+    unsigned start  = r.start;
+    unsigned finish = r.end;
+
+    // align it by 4 for ghost FIR processing
+    start  &= ~3;
+    finish &= ~3;
+
+    while(start != finish)
+    {
+      /* Work on 8 KB blocks; these should fit in L1. */
+      /* (Though it doesn't seem to help much on my system.) */
+      unsigned end = std::min(start + 2048, finish);
+
+      AnalogTV::init_signal(noiselevel, start, end, randVal0, signalVec);
+
+      for (uint32_t i = 0; i < receptions.size(); ++i)
+      {
+        /* Sometimes start > ec. */
+        int ec = (!i && switchChannel) ? channelChangeCycles : 0;
+
+        int skip = ((int)start >= ec) ? 0 : std::min(ec, (int)end) - start;
+
+        if (skip > 0)
+        {
+          AnalogTV::transit_channels(receptions[i], start, skip, randVal1, signalVec);
+        }
+        
+        AnalogTV::add_signal(receptions[i], start, end, skip, signalVec);
+      }
+
+      start = end;
+    }
+  });
+
+  /* rx_signal has an extra 2 lines at the end, where we copy the
+     first 2 lines so we can index into it while only worrying about
+     wraparound on a per-line level */
+  std::copy(signalVec.begin(), signalVec.begin() + (2*ANALOGTV_H),
+            signalVec.begin() + ANALOGTV_SIGNAL_LEN);
+}
+
+
 void AnalogTV::draw(double noiselevel, bool switchChannel, const std::vector<AnalogReception>& receptions, cv::Mat4b outBuffer)
 {
   /*  int bigloadchange,drawcount;*/
@@ -1005,51 +1059,7 @@ void AnalogTV::draw(double noiselevel, bool switchChannel, const std::vector<Ana
 
   this->setup_frame();
 
-  unsigned randVal0 = this->rng();
-  unsigned randVal1 = this->rng();
-
-  assert (ANALOGTV_SIGNAL_LEN % 4 == 0);
-  cv::parallel_for_(cv::Range(0, ANALOGTV_SIGNAL_LEN), [this, &receptions, noiselevel, switchChannel, randVal0, randVal1](const cv::Range& r)
-  {
-    unsigned start  = r.start;
-    unsigned finish = r.end;
-
-    // align it by 4 for ghost FIR processing
-    start  &= ~3;
-    finish &= ~3;
-
-    while(start != finish)
-    {
-      /* Work on 8 KB blocks; these should fit in L1. */
-      /* (Though it doesn't seem to help much on my system.) */
-      unsigned end = std::min(start + 2048, finish);
-
-      this->init_signal(noiselevel, start, end, randVal0);
-
-      for (uint32_t i = 0; i < receptions.size(); ++i)
-      {
-        /* Sometimes start > ec. */
-        int ec = (!i && switchChannel) ? this->channel_change_cycles : 0;
-
-        int skip = ((int)start >= ec) ? 0 : std::min(ec, (int)end) - start;
-
-        if (skip > 0)
-        {
-          this->transit_channels(receptions[i], start, skip, randVal1);
-        }
-        
-        this->add_signal(receptions[i], start, end, skip);
-      }
-
-      start = end;
-    }
-  });
-
-  /* rx_signal has an extra 2 lines at the end, where we copy the
-     first 2 lines so we can index into it while only worrying about
-     wraparound on a per-line level */
-  std::copy(this->rx_signal.begin(), this->rx_signal.begin() + (2*ANALOGTV_H),
-            this->rx_signal.begin() + ANALOGTV_SIGNAL_LEN);
+  AnalogTV::receive(noiselevel, switchChannel, receptions, this->rx_signal);
 
   this->sync(); /* Requires the add_signals be complete. */
 
