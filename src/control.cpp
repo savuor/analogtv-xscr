@@ -115,6 +115,8 @@ struct RandomControl : public Control
     tv.squeezebottom = this->squeezeBottom;
 
     tv.flutter_horiz_desync = this->useFlutterHorizontalDesync;
+
+    tv.channel_change_cycles = this->channelChangeCycles;
   }
 
   void rotateKnobsStart() override
@@ -148,6 +150,7 @@ struct RandomControl : public Control
     this->squeezeBottom = this->rng.uniform(-1.0, 4.0);
 
     this->useFlutterHorizontalDesync = false;
+    this->channelChangeCycles = 200000;
 
     if (!this->fixSettings)
     {
@@ -321,6 +324,8 @@ struct RandomControl : public Control
   double squeezeBottom;
 
   bool useFlutterHorizontalDesync;
+
+  int channelChangeCycles;
 };
 
 
