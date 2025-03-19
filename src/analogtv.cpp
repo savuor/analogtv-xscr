@@ -1259,4 +1259,28 @@ void AnalogReception::update(cv::RNG& rng)
   }
 }
 
+
+SetTopBox::SetTopBox(int seed, int outWidth, int outHeight):
+  tv(seed), receiver(seed), rxSignal(ANALOGTV_SIGNAL_LEN + 2*ANALOGTV_H), outBuffer(outHeight, outWidth)
+{
+  tv.configure(outWidth, outHeight);
+}
+
+
+void SetTopBox::setKnobs(const Knobs& knobs)
+{
+  tv.set_knobs(knobs);
+  receiver.channel_change_cycles = knobs.channelChangeCycles;
+}
+
+
+cv::Mat4b SetTopBox::draw(double noiselevel, bool switchChannel, const std::vector<AnalogReception>& receptions)
+{
+  receiver.receive(noiselevel, switchChannel, receptions, rxSignal);
+  double rxSignalLevel = atv::Receiver::get_rx_signal_level(noiselevel, receptions);
+  tv.draw_signal(rxSignal, rxSignalLevel, outBuffer);
+
+  return outBuffer;
+}
+
 } // ::atv

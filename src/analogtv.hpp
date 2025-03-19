@@ -85,22 +85,6 @@ private:
 };
 
 
-struct SetTopBox
-{
-public:
-  atv::AnalogTV tv;
-  atv::Receiver receiver;
-  // pre-allocated received signal and rendered image frame
-  std::vector<float> rxSignal;
-  cv::Mat4b outBuffer;
-
-  SetTopBox(int seed, int outWidth, int outHeight);
-
-  void setKnobs(const Knobs& knobs);
-  cv::Mat4b draw(double noiselevel, bool switchChannel, const std::vector<AnalogReception>& receptions);
-};
-
-
 /*
   The rest of this should be considered mostly opaque to the analogtv module.
  */
@@ -194,6 +178,22 @@ private:
   int   get_line(int lineno, int *slineno, int *ytop, int *ybot, unsigned *signal_offset) const;
   void  blast_imagerow(const std::vector<float>& rgbf, int ytop, int ybot);
   void  parallel_for_draw_lines(const cv::Range& r, const std::vector<float>& rx_signal);
+};
+
+
+struct SetTopBox
+{
+public:
+  atv::AnalogTV tv;
+  atv::Receiver receiver;
+  // pre-allocated received signal and rendered image frame
+  std::vector<float> rxSignal;
+  cv::Mat4b outBuffer;
+
+  SetTopBox(int seed, int outWidth, int outHeight);
+
+  void setKnobs(const Knobs& knobs);
+  cv::Mat4b draw(double noiselevel, bool switchChannel, const std::vector<AnalogReception>& receptions);
 };
 
 
