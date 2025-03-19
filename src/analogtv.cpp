@@ -229,7 +229,6 @@ AnalogTV::AnalogTV(int seed) :
   cb_phase(),
   line_cb_phase(),
 
-  rx_signal_level(),
   rx_signal(),
 
   puheight(),
@@ -448,7 +447,7 @@ void AnalogTV::ntsc_to_yiq(int lineno, unsigned int signal_offset, int start, in
 }
 
 
-void AnalogTV::setup_frame()
+void AnalogTV::setup_frame(double rx_signal_level)
 {
   /*  int i,x,y;*/
 
@@ -476,8 +475,8 @@ void AnalogTV::setup_frame()
     this->hashnoise_on = 0;
   }
 
-  if (std::abs(this->rx_signal_level) > std::numeric_limits<double>::epsilon())
-    this->agclevel = 1.0/this->rx_signal_level;
+  if (std::abs(rx_signal_level) > std::numeric_limits<double>::epsilon())
+    this->agclevel = 1.0/rx_signal_level;
 
 //TODO: make logs
   // printf("filter: ");
@@ -1042,14 +1041,13 @@ void AnalogTV::draw(double noiselevel, bool switchChannel, const std::vector<Ana
   if (this->image.empty())
     return;
 
-  this->rx_signal_level = noiselevel;
+  double rx_signal_level = noiselevel;
   for (int i = 0; i < (int)receptions.size(); ++i)
   {
     const AnalogReception& rec = receptions[i];
     double level = rec.level;
 
-    this->rx_signal_level =
-      sqrt(this->rx_signal_level * this->rx_signal_level +
+    rx_signal_level = sqrt(rx_signal_level * rx_signal_level +
            (level * level * (1.0 + 4.0*(rec.ghostfir[0] + rec.ghostfir[1] +
                                         rec.ghostfir[2] + rec.ghostfir[3]))));
 
@@ -1058,7 +1056,7 @@ void AnalogTV::draw(double noiselevel, bool switchChannel, const std::vector<Ana
     //rec.input.sigMat.row(0).copyTo(rec.input.sigMat.row(ANALOGTV_V));
   }
 
-  this->setup_frame();
+  this->setup_frame(rx_signal_level);
 
   AnalogTV::receive(noiselevel, switchChannel, receptions, this->rx_signal);
 

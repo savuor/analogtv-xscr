@@ -73,7 +73,6 @@ private:
   double cb_phase[4];
   double line_cb_phase[ANALOGTV_V][4];
 
-  double rx_signal_level;
   // preallocated temp buffer
   std::vector<float> rx_signal;
 
@@ -130,7 +129,7 @@ public:
   void draw(double noiselevel, bool switchChannel, const std::vector<AnalogReception>& receptions, cv::Mat4b outBuffer);
 
 private:
-  void  setup_frame();
+  void  setup_frame(double rx_signal_level);
   void  ntsc_to_yiq(int lineno, unsigned int signal_offset, int start, int end, struct analogtv_yiq_s *it_yiq) const;
   void  sync();
   void  setup_levels(double avgheight);
