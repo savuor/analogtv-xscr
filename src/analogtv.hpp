@@ -64,6 +64,43 @@ struct Knobs
 };
 
 
+struct Receiver
+{
+public:
+  cv::RNG rng;
+
+  // if set, some portion of noise is added before channel switch
+  int channel_change_cycles;
+
+  Receiver(int seed);
+
+  // returns rx_signal_level
+  void receive(double noiselevel, bool switchChannel, const std::vector<AnalogReception>& receptions, std::vector<float>& rx_signal);
+  static double get_rx_signal_level(double noiselevel, const std::vector<AnalogReception>& receptions);
+
+private:
+  static void init_signal(double noiselevel, unsigned start, unsigned end, unsigned randVal, std::vector<float>& rx_signal);
+  static void transit_channels(const AnalogReception& rec, unsigned start, int skip, unsigned randVal, std::vector<float>& rx_signal);
+  static void add_signal(const AnalogReception& rec, unsigned start, unsigned end, int skip, std::vector<float>& rx_signal);
+};
+
+
+struct SetTopBox
+{
+public:
+  atv::AnalogTV tv;
+  atv::Receiver receiver;
+  // pre-allocated received signal and rendered image frame
+  std::vector<float> rxSignal;
+  cv::Mat4b outBuffer;
+
+  SetTopBox(int seed, int outWidth, int outHeight);
+
+  void setKnobs(const Knobs& knobs);
+  cv::Mat4b draw(double noiselevel, bool switchChannel, const std::vector<AnalogReception>& receptions);
+};
+
+
 /*
   The rest of this should be considered mostly opaque to the analogtv module.
  */
@@ -157,44 +194,6 @@ private:
   int   get_line(int lineno, int *slineno, int *ytop, int *ybot, unsigned *signal_offset) const;
   void  blast_imagerow(const std::vector<float>& rgbf, int ytop, int ybot);
   void  parallel_for_draw_lines(const cv::Range& r, const std::vector<float>& rx_signal);
-};
-
-
-//TODO: join it with TV together again by some other class
-struct Receiver
-{
-public:
-  cv::RNG rng;
-
-  // if set, some portion of noise is added before channel switch
-  int channel_change_cycles;
-
-  Receiver(int seed);
-
-  // returns rx_signal_level
-  void receive(double noiselevel, bool switchChannel, const std::vector<AnalogReception>& receptions, std::vector<float>& rx_signal);
-  static double get_rx_signal_level(double noiselevel, const std::vector<AnalogReception>& receptions);
-
-private:
-  static void init_signal(double noiselevel, unsigned start, unsigned end, unsigned randVal, std::vector<float>& rx_signal);
-  static void transit_channels(const AnalogReception& rec, unsigned start, int skip, unsigned randVal, std::vector<float>& rx_signal);
-  static void add_signal(const AnalogReception& rec, unsigned start, unsigned end, int skip, std::vector<float>& rx_signal);
-};
-
-
-struct SetTopBox
-{
-public:
-  atv::AnalogTV tv;
-  atv::Receiver receiver;
-  // pre-allocated received signal and rendered image frame
-  std::vector<float> rxSignal;
-  cv::Mat4b outBuffer;
-
-  SetTopBox(int seed, int outWidth, int outHeight);
-
-  void setKnobs(const Knobs& knobs);
-  cv::Mat4b draw(double noiselevel, bool switchChannel, const std::vector<AnalogReception>& receptions);
 };
 
 
