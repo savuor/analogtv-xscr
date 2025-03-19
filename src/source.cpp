@@ -148,6 +148,8 @@ void BarsSource::update(AnalogInput& input, double time)
     cv::Mat osd = drawTime(time);
    input.load_ximage(osd, cv::Mat4b(), 240, 240, osd.cols, osd.rows, this->outSize.width, this->outSize.height);
   }
+
+  input.finish_frame();
 }
 
 
@@ -210,6 +212,8 @@ void ImageSource::update(AnalogInput& input, double time)
     cv::Mat osd = drawTime(time);
    input.load_ximage(osd, cv::Mat4b(), 240, 240, osd.cols, osd.rows, this->outSize.width, this->outSize.height);
   }
+
+  input.finish_frame();
 
   //DEBUG
   // cv::namedWindow("image");
@@ -393,6 +397,8 @@ void VideoSource::update(AnalogInput& input, double time)
     cv::Mat osd = drawTime(time);
     input.load_ximage(osd, cv::Mat4b(), 240, 240, osd.cols, osd.rows, this->outSize.width, this->outSize.height);
   }
+
+  input.finish_frame();
 
   // for next frame
   cap.grab();

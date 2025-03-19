@@ -250,4 +250,11 @@ void AnalogInput::draw_solid_rel_lcp(double left, double right, double top, doub
 }
 
 
+void AnalogInput::finish_frame()
+{
+  /* duplicate the first line into the Nth line to ease wraparound computation */
+  this->sigMat.row(0).copyTo(this->sigMat.row(ANALOGTV_V));
+}
+
+
 } // ::atv

@@ -1054,7 +1054,8 @@ void AnalogTV::draw(double noiselevel, bool switchChannel, const std::vector<Ana
                                         rec.ghostfir[2] + rec.ghostfir[3]))));
 
     /* duplicate the first line into the Nth line to ease wraparound computation */
-    rec.input.sigMat.row(0).copyTo(rec.input.sigMat.row(ANALOGTV_V));
+    // this is done at input signal generation
+    //rec.input.sigMat.row(0).copyTo(rec.input.sigMat.row(ANALOGTV_V));
   }
 
   this->setup_frame();

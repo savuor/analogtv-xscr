@@ -33,6 +33,8 @@ struct AnalogInput
 
   void load_ximage(const cv::Mat4b& pic_im, const cv::Mat4b& mask_im,
                    int xoff, int yoff, int target_w, int target_h, int out_w, int out_h);
+
+  void finish_frame();
 };
 
 } // ::atv
