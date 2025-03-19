@@ -1033,14 +1033,8 @@ void AnalogTV::receive(double noiselevel, bool switchChannel, const std::vector<
 }
 
 
-void AnalogTV::draw(double noiselevel, bool switchChannel, const std::vector<AnalogReception>& receptions, cv::Mat4b outBuffer)
+double AnalogTV::get_rx_signal_level(double noiselevel, const std::vector<AnalogReception>& receptions)
 {
-  /*  int bigloadchange,drawcount;*/
-
-  /* AnalogTV isn't very interesting if there isn't enough RAM. */
-  if (this->image.empty())
-    return;
-
   double rx_signal_level = noiselevel;
   for (int i = 0; i < (int)receptions.size(); ++i)
   {
@@ -1056,9 +1050,24 @@ void AnalogTV::draw(double noiselevel, bool switchChannel, const std::vector<Ana
     //rec.input.sigMat.row(0).copyTo(rec.input.sigMat.row(ANALOGTV_V));
   }
 
-  this->setup_frame(rx_signal_level);
+  return rx_signal_level;
+}
+
+
+void AnalogTV::draw(double noiselevel, bool switchChannel, const std::vector<AnalogReception>& receptions, cv::Mat4b outBuffer)
+{
+  /*  int bigloadchange,drawcount;*/
+
+  /* AnalogTV isn't very interesting if there isn't enough RAM. */
+  if (this->image.empty())
+    return;
 
   AnalogTV::receive(noiselevel, switchChannel, receptions, this->rx_signal);
+
+  double rx_signal_level = AnalogTV::get_rx_signal_level(noiselevel, receptions);
+
+  this->setup_frame(rx_signal_level);
+
 
   this->sync(); /* Requires the add_signals be complete. */
 

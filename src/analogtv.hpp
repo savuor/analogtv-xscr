@@ -134,6 +134,8 @@ private:
   void  sync();
   void  setup_levels(double avgheight);
   void receive(double noiselevel, bool switchChannel, const std::vector<AnalogReception>& receptions, std::vector<float>& rx_signal);
+  static double get_rx_signal_level(double noiselevel, const std::vector<AnalogReception>& receptions);
+
   static void init_signal(double noiselevel, unsigned start, unsigned end, unsigned randVal, std::vector<float>& rx_signal);
   static void transit_channels(const AnalogReception& rec, unsigned start, int skip, unsigned randVal, std::vector<float>& rx_signal);
   static void add_signal(const AnalogReception& rec, unsigned start, unsigned end, int skip, std::vector<float>& rx_signal);
