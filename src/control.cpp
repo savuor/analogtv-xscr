@@ -95,28 +95,9 @@ struct RandomControl : public Control
     }
   }
 
-  void setTvControls(atv::AnalogTV& tv) override
+  Knobs& getKnobs() override
   {
-    tv.tint_control  = this->tint;
-    tv.color_control = this->color;
-
-    tv.brightness_control = this->brightness;
-    tv.contrast_control   = this->contrast;
-    tv.height_control = this->height;
-    tv.width_control  = this->width;
-    tv.squish_control = this->squish;
-
-    tv.powerup = this->powerup;
-
-    tv.hashnoise_on     = this->useHashNoise;
-    tv.hashnoise_enable = this->enableHashNoise;
-
-    tv.horiz_desync  = this->horizontalDesync;
-    tv.squeezebottom = this->squeezeBottom;
-
-    tv.flutter_horiz_desync = this->useFlutterHorizontalDesync;
-
-    tv.channel_change_cycles = this->channelChangeCycles;
+    return knobs;
   }
 
   void rotateKnobsStart() override
@@ -126,51 +107,51 @@ struct RandomControl : public Control
     // values taken from analogtv-cli
 
     // tint: 0 to 360, default 5
-    this->tint = 5;
+    this->knobs.tint = 5;
     // color: 0 to 400, default 70
     // or 0 to +/- 500, need to check it
-    this->color = 70 / 100.0;
+    this->knobs.color = 70 / 100.0;
 
     // brightness: -75 to 100, default 1.5 or 3.0
-    this->brightness = 2 / 100.0;
+    this->knobs.brightness = 2 / 100.0;
     // contrast: 0 to 500, default 150
-    this->contrast   = 150 / 100.0;
-    this->height = 1.0;
-    this->width  = 1.0;
-    this->squish = 0.0;
+    this->knobs.contrast   = 150 / 100.0;
+    this->knobs.height = 1.0;
+    this->knobs.width  = 1.0;
+    this->knobs.squish = 0.0;
 
-    this->powerup = 1000.0;
+    this->knobs.powerup = 1000.0;
 
     //tv.hashnoise_rpm = 0;
     //TODO: do we need both?
-    this->useHashNoise = 0;
-    this->enableHashNoise = 1;
+    this->knobs.useHashNoise = 0;
+    this->knobs.enableHashNoise = 1;
 
-    this->horizontalDesync = this->rng.uniform(-5.0, 5.0);
-    this->squeezeBottom = this->rng.uniform(-1.0, 4.0);
+    this->knobs.horizontalDesync = this->rng.uniform(-5.0, 5.0);
+    this->knobs.squeezeBottom = this->rng.uniform(-1.0, 4.0);
 
-    this->useFlutterHorizontalDesync = false;
-    this->channelChangeCycles = 200000;
+    this->knobs.useFlutterHorizontalDesync = false;
+    this->knobs.channelChangeCycles = 200000;
 
     if (!this->fixSettings)
     {
       if (this->rng() % 4 == 0)
       {
-        this->tint += pow(this->rng.uniform(-1.0, 1.0), 7) * 180.0;
+        this->knobs.tint += pow(this->rng.uniform(-1.0, 1.0), 7) * 180.0;
       }
       if (1)
       {
-        this->color += this->rng.uniform(0.0, 0.3) * ((this->rng() & 1) ? 1 : -1);
+        this->knobs.color += this->rng.uniform(0.0, 0.3) * ((this->rng() & 1) ? 1 : -1);
       }
       if (0) //if (darkp)
       {
         if (this->rng() % 4 == 0)
         {
-          this->brightness += this->rng.uniform(0.0, 0.15);
+          this->knobs.brightness += this->rng.uniform(0.0, 0.15);
         }
         if (this->rng() % 4 == 0)
         {
-          this->contrast += this->rng.uniform(0.0, 0.2) * ((this->rng() & 1) ? 1 : -1);
+          this->knobs.contrast += this->rng.uniform(0.0, 0.2) * ((this->rng() & 1) ? 1 : -1);
         }
       }
     }
@@ -182,21 +163,21 @@ struct RandomControl : public Control
     {
       if (this->rng() % 4 == 0) 
       {
-        this->tint += pow(this->rng.uniform(-1.0, 1.0), 7) * 180.0 * ((this->rng() & 1) ? 1 : -1);
+        this->knobs.tint += pow(this->rng.uniform(-1.0, 1.0), 7) * 180.0 * ((this->rng() & 1) ? 1 : -1);
       }
       if (1)
       {
-        this->color += this->rng.uniform(0.0, 0.3) * ((this->rng() & 1) ? 1 : -1);
+        this->knobs.color += this->rng.uniform(0.0, 0.3) * ((this->rng() & 1) ? 1 : -1);
       }
       if (0) //(darkp)
       {
         if (this->rng() % 4 == 0)
         {
-          this->brightness += this->rng.uniform(0.0, 0.15);
+          this->knobs.brightness += this->rng.uniform(0.0, 0.15);
         }
         if (this->rng() % 4 == 0)
         {
-          this->contrast += this->rng.uniform(0.0, 0.2) * ((this->rng() & 1) ? 1 : -1);
+          this->knobs.contrast += this->rng.uniform(0.0, 0.2) * ((this->rng() & 1) ? 1 : -1);
         }
       }
     }
@@ -237,7 +218,7 @@ struct RandomControl : public Control
       // don't switch channels when powering up / fading out
       if (this->frameCounter < this->powerUpLastFrame)
       {
-        this->powerup = curTime;
+        this->knobs.powerup = curTime;
         canSwitchChannels = false;
       }
       else if (this->frameCounter >= this->fadeOutFirstFrame)
@@ -248,12 +229,12 @@ struct RandomControl : public Control
         // initialize fading out
         if (this->lastBrightness <= -10.0) // some big value
         {
-          this->lastBrightness = brightness;
+          this->lastBrightness = this->knobs.brightness;
         }
 
         /* Fade out, as there is no power-down animation. */
         double rate = (this->duration - curTime) / POWERDOWN_DURATION;
-        brightness = minBrightness * (1.0 - rate) + this->lastBrightness * rate;
+        this->knobs.brightness = minBrightness * (1.0 - rate) + this->lastBrightness * rate;
 
         canSwitchChannels = false;
       }
@@ -307,25 +288,8 @@ struct RandomControl : public Control
 
   // for fading out
   double lastBrightness;
-  // tv knobs
-  double powerup;
-  double brightness;
-  double tint;
-  double color;
-  double contrast;
-  double height;
-  double width;
-  double squish;
 
-  bool useHashNoise;
-  bool enableHashNoise;
-
-  double horizontalDesync;
-  double squeezeBottom;
-
-  bool useFlutterHorizontalDesync;
-
-  int channelChangeCycles;
+  Knobs knobs;
 };
 
 

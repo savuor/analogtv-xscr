@@ -40,6 +40,30 @@ struct AnalogReception
   void update(cv::RNG& rng);
 };
 
+
+struct Knobs
+{
+  double powerup;
+  double brightness;
+  double tint;
+  double color;
+  double contrast;
+  double height;
+  double width;
+  double squish;
+
+  bool useHashNoise;
+  bool enableHashNoise;
+
+  double horizontalDesync;
+  double squeezeBottom;
+
+  bool useFlutterHorizontalDesync;
+
+  int channelChangeCycles;
+};
+
+
 /*
   The rest of this should be considered mostly opaque to the analogtv module.
  */
@@ -72,9 +96,6 @@ private:
   int cur_vsync;
   double cb_phase[4];
   double line_cb_phase[ANALOGTV_V][4];
-
-  // preallocated temp buffer
-  std::vector<float> rx_signal;
 
   struct {
     int index;
@@ -121,28 +142,43 @@ public:
   int hashnoise_on;
   int hashnoise_enable;
 
-  // if set, some portion of noise is added before channel switch
-  int channel_change_cycles;
-
   AnalogTV(int seed = 0);
   void configure(int outWidth, int outHeight);
-  void draw(double noiselevel, bool switchChannel, const std::vector<AnalogReception>& receptions, cv::Mat4b outBuffer);
+  void draw_signal(const std::vector<float>& rx_signal, double rx_signal_level, cv::Mat4b outBuffer);
+
+  void set_knobs(const Knobs& knobs);
 
 private:
   void  setup_frame(double rx_signal_level);
-  void  ntsc_to_yiq(int lineno, unsigned int signal_offset, int start, int end, struct analogtv_yiq_s *it_yiq) const;
-  void  sync();
+  void  ntsc_to_yiq(const std::vector<float>& rx_signal, int lineno, unsigned int signal_offset, int start, int end, struct analogtv_yiq_s *it_yiq) const;
+  void  sync(const std::vector<float>& rx_signal);
   void  setup_levels(double avgheight);
-  void receive(double noiselevel, bool switchChannel, const std::vector<AnalogReception>& receptions, std::vector<float>& rx_signal);
-  static double get_rx_signal_level(double noiselevel, const std::vector<AnalogReception>& receptions);
-
-  static void init_signal(double noiselevel, unsigned start, unsigned end, unsigned randVal, std::vector<float>& rx_signal);
-  static void transit_channels(const AnalogReception& rec, unsigned start, int skip, unsigned randVal, std::vector<float>& rx_signal);
-  static void add_signal(const AnalogReception& rec, unsigned start, unsigned end, int skip, std::vector<float>& rx_signal);
 
   int   get_line(int lineno, int *slineno, int *ytop, int *ybot, unsigned *signal_offset) const;
   void  blast_imagerow(const std::vector<float>& rgbf, int ytop, int ybot);
-  void  parallel_for_draw_lines(const cv::Range& r);
+  void  parallel_for_draw_lines(const cv::Range& r, const std::vector<float>& rx_signal);
+};
+
+
+//TODO: join it with TV together again by some other class
+struct Receiver
+{
+public:
+  cv::RNG rng;
+
+  // if set, some portion of noise is added before channel switch
+  int channel_change_cycles;
+
+  Receiver(int seed);
+
+  // returns rx_signal_level
+  void receive(double noiselevel, bool switchChannel, const std::vector<AnalogReception>& receptions, std::vector<float>& rx_signal);
+  static double get_rx_signal_level(double noiselevel, const std::vector<AnalogReception>& receptions);
+
+private:
+  static void init_signal(double noiselevel, unsigned start, unsigned end, unsigned randVal, std::vector<float>& rx_signal);
+  static void transit_channels(const AnalogReception& rec, unsigned start, int skip, unsigned randVal, std::vector<float>& rx_signal);
+  static void add_signal(const AnalogReception& rec, unsigned start, unsigned end, int skip, std::vector<float>& rx_signal);
 };
 
 

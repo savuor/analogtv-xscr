@@ -229,8 +229,6 @@ AnalogTV::AnalogTV(int seed) :
   cb_phase(),
   line_cb_phase(),
 
-  rx_signal(),
-
   puheight(),
   rng(seed),
 
@@ -247,9 +245,7 @@ AnalogTV::AnalogTV(int seed) :
 
   flutter_horiz_desync(),
   hashnoise_on(),
-  hashnoise_enable(),
-
-  channel_change_cycles()
+  hashnoise_enable()
 {
   // float crtload[ANALOGTV_V];
 
@@ -261,9 +257,6 @@ AnalogTV::AnalogTV(int seed) :
   //   int index;
   //   double value;
   // } leveltable[ANALOGTV_MAX_LINEHEIGHT+1][ANALOGTV_MAX_LINEHEIGHT+1];
-
-  // preallocate for next frames
-  this->rx_signal.resize(ANALOGTV_SIGNAL_LEN + 2*ANALOGTV_H);
 
   this->shrinkpulse = -1;
 
@@ -325,7 +318,8 @@ struct analogtv_yiq_s {
   float y,i,q;
 } /*yiq[ANALOGTV_PIC_LEN+10] */;
 
-void AnalogTV::ntsc_to_yiq(int lineno, unsigned int signal_offset, int start, int end, struct analogtv_yiq_s *it_yiq) const
+void AnalogTV::ntsc_to_yiq(const std::vector<float>& rx_signal, int lineno, unsigned int signal_offset, int start, int end,
+                           struct analogtv_yiq_s *it_yiq) const
 {
   enum {MAXDELAY=32};
 
@@ -394,7 +388,7 @@ void AnalogTV::ntsc_to_yiq(int lineno, unsigned int signal_offset, int start, in
        mkfilter -Bu -Lp -o 4 -a 2.1428571429e-01 0 -Z 2.5e-01 -l
        Delay about 2 */
 
-    float sig = this->rx_signal[i + signal_offset];
+    float sig = rx_signal[i + signal_offset];
     delay[delayPtr + 0] = sig * 0.0469904257251935f * this->agclevel;
     delay[delayPtr + 8] = +1.0f*(delay[delayPtr + 6] + delay[delayPtr + 0])
                           +4.0f*(delay[delayPtr + 5] + delay[delayPtr + 1])
@@ -412,7 +406,7 @@ void AnalogTV::ntsc_to_yiq(int lineno, unsigned int signal_offset, int start, in
 
     for (int i = start; i < end; i++, delayPtr--)
     {
-      float sig = this->rx_signal[i + signal_offset];
+      float sig = rx_signal[i + signal_offset];
 
       /* Filter I and Q with a 3-pole low-pass Butterworth filter at
          1.5 MHz with an extra zero at 3.5 MHz, from
@@ -488,7 +482,7 @@ void AnalogTV::setup_frame(double rx_signal_level)
 }
 
 
-void AnalogTV::sync()
+void AnalogTV::sync(const std::vector<float>& rx_signal)
 {
   float osc, filt;
 
@@ -502,7 +496,7 @@ void AnalogTV::sync()
     filt=0.0f;
     for (int j = 0; j < ANALOGTV_H; j += ANALOGTV_H/(16*ANALOGTV_SCALE))
     {
-      filt += this->rx_signal[lineno * ANALOGTV_H + j];
+      filt += rx_signal[lineno * ANALOGTV_H + j];
     }
     filt *= this->agclevel;
 
@@ -528,10 +522,10 @@ void AnalogTV::sync()
       {
         hi = i;
         osc = (float)(ANALOGTV_H + i) / (float)ANALOGTV_H;
-        filt = ( this->rx_signal[sidx + i - 3] +
-                 this->rx_signal[sidx + i - 2] +
-                 this->rx_signal[sidx + i - 1] +
-                 this->rx_signal[sidx + i - 0] ) * this->agclevel;
+        filt = ( rx_signal[sidx + i - 3] +
+                 rx_signal[sidx + i - 2] +
+                 rx_signal[sidx + i - 1] +
+                 rx_signal[sidx + i - 0] ) * this->agclevel;
 
         if (osc >= 1.005f + 0.0001f*filt)
           break;
@@ -553,7 +547,7 @@ void AnalogTV::sync()
       for (int i = ANALOGTV_CB_START + 8*ANALOGTV_SCALE; i < ANALOGTV_CB_START + (36-8)*ANALOGTV_SCALE; i++)
       {
         this->cb_phase[i&3] = this->cb_phase[i&3] * (1.0f - 1.0f/128.0f) +
-                              this->rx_signal[lineno*ANALOGTV_H + (this->cur_hsync & ~3) + i] * this->agclevel * (1.0f/128.0f);
+                              rx_signal[lineno*ANALOGTV_H + (this->cur_hsync & ~3) + i] * this->agclevel * (1.0f/128.0f);
       }
     }
 
@@ -694,7 +688,7 @@ float getUniformSymmetrical(unsigned int& fastrnd, float range)
   return v;
 }
 
-void AnalogTV::init_signal(double noiselevel, unsigned start, unsigned end, unsigned randVal, std::vector<float>& rx_signal)
+void Receiver::init_signal(double noiselevel, unsigned start, unsigned end, unsigned randVal, std::vector<float>& rx_signal)
 {
   unsigned int fastrnd = rnd_seek(FASTRND_A, FASTRND_C, randVal, start);
 
@@ -711,7 +705,7 @@ void AnalogTV::init_signal(double noiselevel, unsigned start, unsigned end, unsi
 }
 
 
-void AnalogTV::transit_channels(const AnalogReception& rec, unsigned start, int skip, unsigned randVal, std::vector<float>& rx_signal)
+void Receiver::transit_channels(const AnalogReception& rec, unsigned start, int skip, unsigned randVal, std::vector<float>& rx_signal)
 {
   const signed char* signal = rec.input.sigMat[0];
 
@@ -742,7 +736,7 @@ void AnalogTV::transit_channels(const AnalogReception& rec, unsigned start, int 
 }
 
 
-void AnalogTV::add_signal(const AnalogReception& rec, unsigned start, unsigned end, int skip, std::vector<float>& rx_signal)
+void Receiver::add_signal(const AnalogReception& rec, unsigned start, unsigned end, int skip, std::vector<float>& rx_signal)
 {
   assert(((int)end - (int)start - skip) % 4 == 0);
 
@@ -863,7 +857,7 @@ void AnalogTV::blast_imagerow(const std::vector<float>& rgbf, int ytop, int ybot
 }
 
 
-void AnalogTV::parallel_for_draw_lines(const cv::Range& range)
+void AnalogTV::parallel_for_draw_lines(const cv::Range& range, const std::vector<float>& rx_signal)
 {
   //TODO: Vec3f
   std::vector<float> raw_rgb(this->subwidth * 3);
@@ -908,7 +902,7 @@ void AnalogTV::parallel_for_draw_lines(const cv::Range& range)
     //                 scl,scr,scw);
 
     struct analogtv_yiq_s yiq[ANALOGTV_PIC_LEN+10];
-    this->ntsc_to_yiq(lineno, signal_offset, (scanstart_i>>16)-10, (scanend_i>>16)+10, yiq);
+    this->ntsc_to_yiq(rx_signal, lineno, signal_offset, (scanstart_i>>16)-10, (scanend_i>>16)+10, yiq);
 
     float pixbright = this->contrast_control * puramp(this->powerup, 1.0f, 0.0f, 1.0f) / (0.5f+0.5f*this->puheight) * 1024.0f/100.0f;
     int pixmultinc = pixrate;
@@ -980,8 +974,17 @@ void AnalogTV::parallel_for_draw_lines(const cv::Range& range)
 }
 
 
-void AnalogTV::receive(double noiselevel, bool switchChannel, const std::vector<AnalogReception>& receptions, std::vector<float>& signalVec)
+Receiver::Receiver(int seed):
+  rng(seed),
+  channel_change_cycles()
+{ }
+
+
+void Receiver::receive(double noiselevel, bool switchChannel, const std::vector<AnalogReception>& receptions, std::vector<float>& signalVec)
 {
+  // just for the case if it wasn't initialized properly
+  signalVec.resize(ANALOGTV_SIGNAL_LEN + 2*ANALOGTV_H);
+
   unsigned randVal0 = this->rng();
   unsigned randVal1 = this->rng();
 
@@ -1004,7 +1007,7 @@ void AnalogTV::receive(double noiselevel, bool switchChannel, const std::vector<
       /* (Though it doesn't seem to help much on my system.) */
       unsigned end = std::min(start + 2048, finish);
 
-      AnalogTV::init_signal(noiselevel, start, end, randVal0, signalVec);
+      Receiver::init_signal(noiselevel, start, end, randVal0, signalVec);
 
       for (uint32_t i = 0; i < receptions.size(); ++i)
       {
@@ -1015,10 +1018,10 @@ void AnalogTV::receive(double noiselevel, bool switchChannel, const std::vector<
 
         if (skip > 0)
         {
-          AnalogTV::transit_channels(receptions[i], start, skip, randVal1, signalVec);
+          Receiver::transit_channels(receptions[i], start, skip, randVal1, signalVec);
         }
         
-        AnalogTV::add_signal(receptions[i], start, end, skip, signalVec);
+        Receiver::add_signal(receptions[i], start, end, skip, signalVec);
       }
 
       start = end;
@@ -1033,7 +1036,7 @@ void AnalogTV::receive(double noiselevel, bool switchChannel, const std::vector<
 }
 
 
-double AnalogTV::get_rx_signal_level(double noiselevel, const std::vector<AnalogReception>& receptions)
+double Receiver::get_rx_signal_level(double noiselevel, const std::vector<AnalogReception>& receptions)
 {
   double rx_signal_level = noiselevel;
   for (int i = 0; i < (int)receptions.size(); ++i)
@@ -1054,22 +1057,40 @@ double AnalogTV::get_rx_signal_level(double noiselevel, const std::vector<Analog
 }
 
 
-void AnalogTV::draw(double noiselevel, bool switchChannel, const std::vector<AnalogReception>& receptions, cv::Mat4b outBuffer)
+void AnalogTV::set_knobs(const Knobs& knobs)
+{
+    this->tint_control  = knobs.tint;
+    this->color_control = knobs.color;
+
+    this->brightness_control = knobs.brightness;
+    this->contrast_control   = knobs.contrast;
+    this->height_control = knobs.height;
+    this->width_control  = knobs.width;
+    this->squish_control = knobs.squish;
+
+    this->powerup = knobs.powerup;
+
+    this->hashnoise_on     = knobs.useHashNoise;
+    this->hashnoise_enable = knobs.enableHashNoise;
+
+    this->horiz_desync  = knobs.horizontalDesync;
+    this->squeezebottom = knobs.squeezeBottom;
+
+    this->flutter_horiz_desync = knobs.useFlutterHorizontalDesync;
+}
+
+
+void AnalogTV::draw_signal(const std::vector<float>& rx_signal, double rx_signal_level, cv::Mat4b outBuffer)
 {
   /*  int bigloadchange,drawcount;*/
 
   /* AnalogTV isn't very interesting if there isn't enough RAM. */
   if (this->image.empty())
-    return;
-
-  AnalogTV::receive(noiselevel, switchChannel, receptions, this->rx_signal);
-
-  double rx_signal_level = AnalogTV::get_rx_signal_level(noiselevel, receptions);
+    throw std::runtime_error("Image is not initialized somehow");
 
   this->setup_frame(rx_signal_level);
 
-
-  this->sync(); /* Requires the add_signals be complete. */
+  this->sync(rx_signal);
 
   double baseload = 0.5;
   /* if (this->hashnoise_on) baseload=0.5; */
@@ -1141,7 +1162,7 @@ void AnalogTV::draw(double noiselevel, bool switchChannel, const std::vector<Ana
       float totsignal = 0;
       for (uint32_t i = signal_offset; i < (signal_offset + ANALOGTV_PIC_LEN); i++)
       {
-        totsignal += this->rx_signal[i];
+        totsignal += rx_signal[i];
       }
 
       totsignal *= this->agclevel;
@@ -1156,9 +1177,11 @@ void AnalogTV::draw(double noiselevel, bool switchChannel, const std::vector<Ana
     }
   }
 
-  cv::parallel_for_(cv::Range(ANALOGTV_TOP, ANALOGTV_BOT), [this](const cv::Range& r)
+  //DEBUG
+  //this->parallel_for_draw_lines(cv::Range(ANALOGTV_TOP, ANALOGTV_BOT), rx_signal);
+  cv::parallel_for_(cv::Range(ANALOGTV_TOP, ANALOGTV_BOT), [this, &rx_signal](const cv::Range& r)
   {
-    this->parallel_for_draw_lines(r);
+    this->parallel_for_draw_lines(r, rx_signal);
   });
 
 

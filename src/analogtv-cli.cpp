@@ -91,7 +91,11 @@ static void run(Params params)
   atv::Log::write(2, "initialized " + std::to_string(outputs.size()) + " outputs");
 
   cv::Mat4b outBuffer(outSize);
+  //TODO: join Receiver and AnalogTV under the one class
   atv::AnalogTV tv(seed);
+  // pre-allocated received signal
+  std::vector<float> rxSignal(atv::ANALOGTV_SIGNAL_LEN + 2*atv::ANALOGTV_H);
+  atv::Receiver receiver(seed);
   tv.configure(outSize.width, outSize.height);
 
   std::shared_ptr<atv::Control> control = atv::Control::create(params.controlDescription);
@@ -100,7 +104,9 @@ static void run(Params params)
   control->createChannels(sources);
 
   control->rotateKnobsStart();
-  control->setTvControls(tv);
+  atv::Knobs knobs = control->getKnobs();
+  tv.set_knobs(knobs);
+  receiver.channel_change_cycles = knobs.channelChangeCycles;
 
   control->run();
 
@@ -117,7 +123,10 @@ static void run(Params params)
 
     bool switchChannel = (action.type == atv::Control::Operation::Type::SWITCH);
 
-    control->setTvControls(tv);
+    knobs = control->getKnobs();
+    tv.set_knobs(knobs);
+    receiver.channel_change_cycles = knobs.channelChangeCycles;
+
     double curTime = control->getTime();
 
     atv::ChanSetting& curChannel = control->chanSettings[curInput];
@@ -129,7 +138,9 @@ static void run(Params params)
       rec.update(rng);
     }
 
-    tv.draw(curChannel.noise_level, switchChannel, curChannel.receptions, outBuffer);
+    receiver.receive(curChannel.noise_level, switchChannel, curChannel.receptions, rxSignal);
+    double rxSignalLevel = atv::Receiver::get_rx_signal_level(curChannel.noise_level, curChannel.receptions);
+    tv.draw_signal(rxSignal, rxSignalLevel, outBuffer);
 
     // Send rendered frame to outputs
     for (const auto& o : outputs)
