@@ -182,6 +182,22 @@ private:
 };
 
 
+struct SetTopBox
+{
+public:
+  atv::AnalogTV tv;
+  atv::Receiver receiver;
+  // pre-allocated received signal and rendered image frame
+  std::vector<float> rxSignal;
+  cv::Mat4b outBuffer;
+
+  SetTopBox(int seed, int outWidth, int outHeight);
+
+  void setKnobs(const Knobs& knobs);
+  cv::Mat4b draw(double noiselevel, bool switchChannel, const std::vector<AnalogReception>& receptions);
+};
+
+
 void analogtv_lcp_to_ntsc(double luma, double chroma, double phase, int ntsc[4]);
 
 } // ::atv
