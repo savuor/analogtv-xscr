@@ -95,7 +95,7 @@ struct RandomControl : public Control
     }
   }
 
-  Knobs& getKnobs() override
+  Knobs getKnobs() override
   {
     return knobs;
   }

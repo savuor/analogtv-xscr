@@ -43,7 +43,7 @@ struct Control
   // why const ref to sources does not work?
   virtual void createChannels(const std::vector<std::shared_ptr<atv::Source>> sources) = 0;
 
-  virtual Knobs& getKnobs() = 0;
+  virtual Knobs getKnobs() = 0;
 
   virtual void rotateKnobsStart() = 0;
 
