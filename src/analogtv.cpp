@@ -993,8 +993,7 @@ void Receiver::receive(double noiselevel, bool switchChannel, const std::vector<
   int channelChangeCycles = this->channel_change_cycles;
 
   assert (ANALOGTV_SIGNAL_LEN % 4 == 0);
-  cv::parallel_for_(cv::Range(0, ANALOGTV_SIGNAL_LEN),
-                    [&receptions, &signalVec, noiselevel, switchChannel, channelChangeCycles, randVal0, randVal1](const cv::Range& r)
+  auto loop = [&receptions, &signalVec, noiselevel, switchChannel, channelChangeCycles, randVal0, randVal1](const cv::Range& r)
   {
     unsigned start  = r.start;
     unsigned finish = r.end;
@@ -1028,7 +1027,8 @@ void Receiver::receive(double noiselevel, bool switchChannel, const std::vector<
 
       start = end;
     }
-  });
+  };
+  cv::parallel_for_(cv::Range(0, ANALOGTV_SIGNAL_LEN), loop);
 
   /* rx_signal has an extra 2 lines at the end, where we copy the
      first 2 lines so we can index into it while only worrying about
