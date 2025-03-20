@@ -320,12 +320,8 @@ AnalogTV::AnalogTV(int seed) :
 
 */
 
-struct analogtv_yiq_s {
-  float y,i,q;
-} /*yiq[ANALOGTV_PIC_LEN+10] */;
-
 void AnalogTV::ntsc_to_yiq(const std::vector<float>& rx_signal, int lineno, unsigned int signal_offset, int start, int end,
-                           struct analogtv_yiq_s *it_yiq) const
+                           std::vector<analogtv_yiq_s>& it_yiq) const
 {
   enum {MAXDELAY=32};
 
@@ -907,7 +903,7 @@ void AnalogTV::parallel_for_draw_lines(const cv::Range& range, const std::vector
     //                 scanend_i/65536.0f,
     //                 scl,scr,scw);
 
-    struct analogtv_yiq_s yiq[ANALOGTV_PIC_LEN+10];
+    std::vector<analogtv_yiq_s> yiq(ANALOGTV_PIC_LEN + 10);
     this->ntsc_to_yiq(rx_signal, lineno, signal_offset, (scanstart_i>>16)-10, (scanend_i>>16)+10, yiq);
 
     float pixbright = this->contrast_control * puramp(this->powerup, 1.0f, 0.0f, 1.0f) / (0.5f+0.5f*this->puheight) * 1024.0f/100.0f;
