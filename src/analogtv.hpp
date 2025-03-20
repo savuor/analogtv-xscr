@@ -170,8 +170,15 @@ public:
   void set_knobs(const Knobs& knobs);
 
 private:
+
+  struct analogtv_yiq_s
+  {
+    float y,i,q;
+  };
+
   void  setup_frame(double rx_signal_level);
-  void  ntsc_to_yiq(const std::vector<float>& rx_signal, int lineno, unsigned int signal_offset, int start, int end, struct analogtv_yiq_s *it_yiq) const;
+  void  ntsc_to_yiq(const std::vector<float>& rx_signal, int lineno, unsigned int signal_offset, int start, int end,
+                    std::vector<analogtv_yiq_s>& it_yiq) const;
   void  sync(const std::vector<float>& rx_signal);
   void  setup_levels(double avgheight);
 

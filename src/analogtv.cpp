@@ -790,21 +790,21 @@ void Receiver::add_signal(const AnalogReception& rec, unsigned start, unsigned e
 }
 
 
-int AnalogTV::get_line(int lineno, int *slineno, int *ytop, int *ybot, unsigned *signal_offset) const
+int AnalogTV::get_line(int lineno, int& slineno, int& ytop, int& ybot, unsigned& signal_offset) const
 {
-  *slineno = lineno - ANALOGTV_TOP;
-  *ytop = (int)(((lineno - ANALOGTV_TOP  ) * this->useheight / ANALOGTV_VISLINES - this->useheight/2) * this->puheight) + this->useheight/2;
-  *ybot = (int)(((lineno - ANALOGTV_TOP+1) * this->useheight / ANALOGTV_VISLINES - this->useheight/2) * this->puheight) + this->useheight/2;
+  slineno = lineno - ANALOGTV_TOP;
+  ytop = (int)(((lineno - ANALOGTV_TOP  ) * this->useheight / ANALOGTV_VISLINES - this->useheight/2) * this->puheight) + this->useheight/2;
+  ybot = (int)(((lineno - ANALOGTV_TOP+1) * this->useheight / ANALOGTV_VISLINES - this->useheight/2) * this->puheight) + this->useheight/2;
 
-  *signal_offset = ((lineno + this->cur_vsync+ANALOGTV_V) % ANALOGTV_V) * ANALOGTV_H +
-                    this->line_hsync[lineno];
+  signal_offset = ((lineno + this->cur_vsync+ANALOGTV_V) % ANALOGTV_V) * ANALOGTV_H +
+                   this->line_hsync[lineno];
 
-  if (*ytop == *ybot) return 0;
-  if (*ybot < 0 || *ytop > this->useheight) return 0;
+  if (ytop == ybot) return 0;
+  if (ybot < 0 || ytop > this->useheight) return 0;
 
-  *ytop = std::max(0, *ytop);
+  ytop = std::max(0, ytop);
 
-  *ybot = std::min(*ybot, std::min(this->useheight, *ytop + ANALOGTV_MAX_LINEHEIGHT));
+  ybot = std::min(ybot, std::min(this->useheight, ytop + ANALOGTV_MAX_LINEHEIGHT));
   return 1;
 }
 
@@ -869,7 +869,7 @@ void AnalogTV::parallel_for_draw_lines(const cv::Range& range, const std::vector
   {
     int slineno, ytop, ybot;
     unsigned signal_offset;
-    if (! this->get_line(lineno, &slineno, &ytop, &ybot, &signal_offset))
+    if (! this->get_line(lineno, slineno, ytop, ybot, signal_offset))
       continue;
 
     float bloomthisrow = std::clamp(-10.0f * this->crtload[lineno], -10.f, 2.0f);
@@ -1117,7 +1117,7 @@ void AnalogTV::draw_signal(const std::vector<float>& rx_signal, double rx_signal
   {
     int slineno, ytop, ybot;
     unsigned signal_offset;
-    if (!this->get_line(lineno, &slineno, &ytop, &ybot, &signal_offset))
+    if (!this->get_line(lineno, slineno, ytop, ybot, signal_offset))
       continue;
 
     if (lineno == this->shrinkpulse)
