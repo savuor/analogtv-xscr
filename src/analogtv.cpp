@@ -675,8 +675,8 @@ static unsigned int rnd_seek(unsigned a, unsigned c, unsigned rnd, unsigned dist
 }
 
 
-#define FASTRND_A 1103515245
-#define FASTRND_C 12345
+const unsigned int FASTRND_A = 1103515245;
+const unsigned int FASTRND_C = 12345;
 
 // generating uniform value from -range to range
 float getUniformSymmetrical(unsigned int& fastrnd, float range)
