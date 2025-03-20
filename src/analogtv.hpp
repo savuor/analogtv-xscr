@@ -127,8 +127,6 @@ private:
 
   cv::RNG rng;
 
-public:
-
   // can be set individually for every frame from outside
   float tint_control, color_control, brightness_control, contrast_control;
   float height_control, width_control, squish_control;
@@ -162,6 +160,8 @@ public:
  // int hashnoise_signal[ANALOGTV_V];
   int hashnoise_on;
   int hashnoise_enable;
+
+public:
 
   AnalogTV(int seed = 0);
   void configure(int outWidth, int outHeight);

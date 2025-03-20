@@ -220,6 +220,10 @@ AnalogTV::AnalogTV(int seed) :
   outWidth(),
   outHeight(),
 
+  shrinkpulse(),
+  crtload(),
+  intensity_values(),
+
   tint_i(),
   tint_q(),
 
@@ -228,6 +232,8 @@ AnalogTV::AnalogTV(int seed) :
   cur_vsync(),
   cb_phase(),
   line_cb_phase(),
+
+  leveltable(),
 
   puheight(),
   rng(seed),
