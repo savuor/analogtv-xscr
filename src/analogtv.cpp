@@ -809,7 +809,7 @@ int AnalogTV::get_line(int lineno, int& slineno, int& ytop, int& ybot, unsigned&
 }
 
 
-void AnalogTV::blast_imagerow(const std::vector<float>& rgbf, int ytop, int ybot)
+void AnalogTV::blast_imagerow(const std::vector<cv::Vec3f>& rgbf, int ytop, int ybot)
 {
   std::vector<cv::Vec4b*> level_copyfrom(3, nullptr);
 
@@ -832,12 +832,13 @@ void AnalogTV::blast_imagerow(const std::vector<float>& rgbf, int ytop, int ybot
     {
       level_copyfrom[level] = rowdata;
 
-      for (size_t i = 0; i < rgbf.size() / 3; i++)
+      for (size_t i = 0; i < rgbf.size(); i++)
       {
+        cv::Vec3f val = rgbf[i];
         cv::Vec4i rgb;
-        rgb[0] = rgbf[i*3 + 0];
-        rgb[1] = rgbf[i*3 + 1];
-        rgb[2] = rgbf[i*3 + 2];
+        rgb[0] = val[0];
+        rgb[1] = val[1];
+        rgb[2] = val[2];
 
         for (int j = 0; j < 3; j++)
         {
@@ -861,8 +862,7 @@ void AnalogTV::blast_imagerow(const std::vector<float>& rgbf, int ytop, int ybot
 
 void AnalogTV::parallel_for_draw_lines(const cv::Range& range, const std::vector<float>& rx_signal)
 {
-  //TODO: Vec3f
-  std::vector<float> raw_rgb(this->subwidth * 3);
+  std::vector<cv::Vec3f> raw_rgb(this->subwidth);
 
   // from ANALOGTV_TOP to ANALOGTV_BOT
   for (int lineno = range.start; lineno < range.end; lineno++)
@@ -909,22 +909,19 @@ void AnalogTV::parallel_for_draw_lines(const cv::Range& range, const std::vector
     float pixbright = this->contrast_control * puramp(this->powerup, 1.0f, 0.0f, 1.0f) / (0.5f+0.5f*this->puheight) * 1024.0f/100.0f;
     int pixmultinc = pixrate;
     int i = scanstart_i;
-    int rrpIdx = scl*3;
-    while (i < 0 && rrpIdx != scr*3)
+    int rrpIdx = scl;
+    while (i < 0 && rrpIdx != scr)
     {
-      raw_rgb[rrpIdx + 0] = 0;
-      raw_rgb[rrpIdx + 1] = 0;
-      raw_rgb[rrpIdx + 2] = 0;
+      raw_rgb[rrpIdx] = {};
       i+=pixmultinc;
-      rrpIdx += 3;
+      rrpIdx++;
     }
-    while (i < scanend_i && rrpIdx != scr*3)
+    while (i < scanend_i && rrpIdx != scr)
     {
       float pixfrac=(i&0xffff)/65536.0f;
       float invpixfrac=1.0f-pixfrac;
       int pati=i>>16;
-      float r,g,b;
-
+ 
       float interpy = yiq[pati].y*invpixfrac + yiq[pati+1].y*pixfrac;
       float interpi = yiq[pati].i*invpixfrac + yiq[pati+1].i*pixfrac;
       float interpq = yiq[pati].q*invpixfrac + yiq[pati+1].q*pixfrac;
@@ -945,15 +942,12 @@ void AnalogTV::parallel_for_draw_lines(const cv::Range& range, const std::vector
         b = y - 1.105 i + 1.729 q
       */
 
-      r = (interpy + 0.948f*interpi + 0.624f*interpq) * pixbright;
-      g = (interpy - 0.276f*interpi - 0.639f*interpq) * pixbright;
-      b = (interpy - 1.105f*interpi + 1.729f*interpq) * pixbright;
-      r = std::max(r, 0.0f);
-      g = std::max(g, 0.0f);
-      b = std::max(b, 0.0f);
-      raw_rgb[rrpIdx + 0] = r;
-      raw_rgb[rrpIdx + 1] = g;
-      raw_rgb[rrpIdx + 2] = b;
+      cv::Vec3f rgb = cv::Vec3f::all(interpy) + cv::Vec3f{0.948f, -0.276f, -1.105f}*interpi + cv::Vec3f{0.624f, -0.639f, 1.729f}*interpq;
+      rgb *= pixbright;
+      rgb[0] = std::max(rgb[0], 0.0f);
+      rgb[1] = std::max(rgb[1], 0.0f);
+      rgb[2] = std::max(rgb[2], 0.0f);
+      raw_rgb[rrpIdx] = rgb;
 
       if (i>=squishright_i)
       {
@@ -961,14 +955,12 @@ void AnalogTV::parallel_for_draw_lines(const cv::Range& range, const std::vector
         pixbright += pixbright/squishdiv/2;
       }
       i+=pixmultinc;
-      rrpIdx += 3;
+      rrpIdx++;
     }
-    while (rrpIdx != scr*3)
+    while (rrpIdx != scr)
     {
-      raw_rgb[rrpIdx + 0] = 0;
-      raw_rgb[rrpIdx + 1] = 0;
-      raw_rgb[rrpIdx + 2] = 0;
-      rrpIdx += 3;
+      raw_rgb[rrpIdx] = {};
+      rrpIdx++;
     }
 
     this->blast_imagerow(raw_rgb, ytop, ybot);

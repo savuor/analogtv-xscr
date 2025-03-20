@@ -185,7 +185,7 @@ private:
   void  setup_levels(double avgheight);
 
   int   get_line(int lineno, int& slineno, int& ytop, int& ybot, unsigned& signal_offset) const;
-  void  blast_imagerow(const std::vector<float>& rgbf, int ytop, int ybot);
+  void  blast_imagerow(const std::vector<cv::Vec3f>& rgbf, int ytop, int ybot);
   void  parallel_for_draw_lines(const cv::Range& r, const std::vector<float>& rx_signal);
 };
 
