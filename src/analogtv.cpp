@@ -1223,6 +1223,17 @@ void AnalogTV::draw_signal(const std::vector<float>& rx_signal, double rx_signal
   }
 }
 
+AnalogReception::AnalogReception() :
+  input(),
+  ofs(),
+  level(),
+  multipath(),
+  freqerr(),
+  ghostfir(),
+  ghostfir2(),
+  hfloss(),
+  hfloss2()
+{ }
 
 void AnalogReception::update(cv::RNG& rng)
 {

@@ -22,6 +22,8 @@ namespace atv
 
 struct AnalogReception
 {
+  AnalogReception();
+
   AnalogInput input;
 
   double ofs;
