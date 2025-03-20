@@ -1179,13 +1179,10 @@ void AnalogTV::draw_signal(const std::vector<float>& rx_signal, double rx_signal
     }
   }
 
-  //DEBUG
-  //this->parallel_for_draw_lines(cv::Range(ANALOGTV_TOP, ANALOGTV_BOT), rx_signal);
   cv::parallel_for_(cv::Range(ANALOGTV_TOP, ANALOGTV_BOT), [this, &rx_signal](const cv::Range& r)
   {
     this->parallel_for_draw_lines(r, rx_signal);
   });
-
 
   /*
     Subtle change: overall_bot was the bottom of the last scan line. Now it's

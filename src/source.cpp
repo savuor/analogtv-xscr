@@ -214,10 +214,6 @@ void ImageSource::update(AnalogInput& input, double time)
   }
 
   input.finish_frame();
-
-  //DEBUG
-  // cv::namedWindow("image");
-  // cv::imshow("image", input.sigMat);
 }
 
 
