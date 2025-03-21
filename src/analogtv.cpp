@@ -835,14 +835,12 @@ void AnalogTV::blast_imagerow(const std::vector<cv::Vec3f>& rgbf, int ytop, int 
       for (size_t i = 0; i < rgbf.size(); i++)
       {
         cv::Vec3f val = rgbf[i];
-        cv::Vec4i rgb;
-        rgb[0] = val[0];
-        rgb[1] = val[1];
-        rgb[2] = val[2];
 
+        cv::Vec4i rgb;
         for (int j = 0; j < 3; j++)
         {
-          rgb[j] = this->intensity_values[std::min(int(rgb[j] * levelmult), ANALOGTV_CV_MAX-1)];
+          //rgb[j] = this->intensity_values[std::clamp(int(val[j] * levelmult), 0, ANALOGTV_CV_MAX-1)];
+          rgb[j] = this->intensity_values[std::min(int(val[j] * levelmult), ANALOGTV_CV_MAX-1)];
         }
 
         cv::Vec4b v(rgb[2], rgb[1], rgb[0], 0);
