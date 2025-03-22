@@ -28,7 +28,7 @@
 				"request": "launch",
 				"program": "${command:cmake.buildDirectory}/analogtv-cli",
 				"args": [
-					"--verbose", "3",
+					"--verbose", "2",
 					//"--control", ":random:duration=60:powerup:fixsettings",
 					"--control", ":random:duration=60:powerup",
 					"--size", "1280", "1024",

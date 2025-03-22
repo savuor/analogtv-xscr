@@ -352,10 +352,14 @@ void VideoSource::update(AnalogInput& input, double time)
 
   if (time - lastGrabTime >= 2.0 / this->fps)
   {
+    std::string sTime = time < 0 ? "never" : std::to_string(time);
+    std::string sLastTime = lastGrabTime < 0 ? "never" : std::to_string(lastGrabTime);
+    Log::write(2, "Grab extra frame from " + (isCamera ? ("cam #" + std::to_string(nCamera)) : videoFileName) +
+                  ": t=" + sTime + " vs last_t=" + sLastTime);
     if (!isCamera)
     {
       cap.set(cv::CAP_PROP_POS_MSEC, time * 1000.0);
-      Log::write(2, "Video seek to " + std::to_string(time));
+      Log::write(2, videoFileName + ": seek to " + std::to_string(time));
     }
     cap.grab();
     this->lastGrabTime = time;

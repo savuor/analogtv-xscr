@@ -104,6 +104,7 @@ static void run(Params params)
 
   while (true)
   {
+    double curTime = control->getTime();
     auto action = control->getNext();
 
     if (action.type == atv::Control::Operation::Type::QUIT)
@@ -117,7 +118,7 @@ static void run(Params params)
 
     tv.setKnobs(control->getKnobs());
 
-    double curTime = control->getTime();
+    atv::Log::write(3, "Time: " + std::to_string(curTime));
 
     atv::ChanSetting& curChannel = control->chanSettings[curInput];
     for (size_t i = 0; i < curChannel.receptions.size(); i++)
