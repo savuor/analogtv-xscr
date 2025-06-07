@@ -205,7 +205,4 @@ public:
   cv::Mat4b draw(double noiselevel, bool switchChannel, const std::vector<AnalogReception>& receptions);
 };
 
-
-void analogtv_lcp_to_ntsc(double luma, double chroma, double phase, int ntsc[4]);
-
 } // ::atv

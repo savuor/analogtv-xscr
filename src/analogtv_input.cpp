@@ -223,17 +223,6 @@ void AnalogInput::draw_solid(int left, int right, int top, int bot, int ntsc[4])
   }
 }
 
-void analogtv_lcp_to_ntsc(double luma, double chroma, double phase, int ntsc[4])
-{
-  for (int i=0; i<4; i++)
-  {
-    double w=90.0*i + phase;
-    double val=luma + chroma * (cos(M_PI/180.0*w));
-    val = std::clamp(val, 0.0, 127.0);
-    ntsc[i]=(int)val;
-  }
-}
-
 
 void AnalogInput::draw_solid_rel_lcp(double left, double right, double top, double bot,
                                      double luma, double chroma, double phase)
@@ -245,7 +234,14 @@ void AnalogInput::draw_solid_rel_lcp(double left, double right, double top, doub
   int lefti  = (int)(ANALOGTV_VIS_START + ANALOGTV_VIS_LEN*left);
   int righti = (int)(ANALOGTV_VIS_START + ANALOGTV_VIS_LEN*right);
 
-  analogtv_lcp_to_ntsc(luma, chroma, phase, ntsc);
+  for (int i = 0; i < 4; i++)
+  {
+    double w = 90.0 * i + phase;
+    double val = luma + chroma * cos(M_PI / 180.0 * w);
+    val = std::clamp(val, 0.0, 127.0);
+    ntsc[i]=(int)val;
+  }
+
   this->draw_solid(lefti, righti, topi, boti, ntsc);
 }
 
