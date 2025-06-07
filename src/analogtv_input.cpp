@@ -79,12 +79,12 @@ void AnalogInput::load_ximage(const cv::Mat4b& pic_im, const cv::Mat4b& mask_im,
     yoff = ANALOGTV_VISLINES * yoff / out_w;
 
     int multiq[ANALOGTV_PIC_LEN+4];
-    for (int i=0; i<x_length+4; i++)
+    for (int i = 0; i < x_length + 4; i++)
     {
         //TODO: check this, may be incorrect
         double phase = 90.0 + 90.0 * i;
         double ampl = 1.0;
-        multiq[i] = (int)(cos(M_PI/180.0*(phase+33)) * 4096.0 * ampl);
+        multiq[i] = (int)(cos(M_PI/180.0*(phase + 33.0)) * 4096.0 * ampl);
 
         // double phase = 90.0 - 90.0 * i;
         // double ampl = 1.0;
