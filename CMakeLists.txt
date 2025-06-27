@@ -28,6 +28,7 @@ add_executable(analogtv-cli
     "./src/utils.cpp"
     "./src/control.cpp"
     "./src/random_control.cpp"
+    "./src/gui_control.cpp"
 )
 
 target_link_libraries(analogtv-cli ${OpenCV_LIBS} ${wxWidgets_LIBRARIES})
