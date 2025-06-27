@@ -5,8 +5,6 @@
 namespace atv
 {
 
-const int MAX_MULTICHAN = 2;
-
 GuiControl::GuiControl(double _fps, bool _randomizeSettings)
 {
   this->fps = _fps;
@@ -14,6 +12,8 @@ GuiControl::GuiControl(double _fps, bool _randomizeSettings)
   //TODO: initialize GUI itself
 }
 
+
+const int MAX_MULTICHAN = 2;
 
 // why const ref to sources does not work?
 void GuiControl::createChannels(const std::vector<std::shared_ptr<atv::Source>> sources)
@@ -40,7 +40,7 @@ void GuiControl::createChannels(const std::vector<std::shared_ptr<atv::Source>> 
           if (this->rng() % 10 == 0) break;
         }
         last_station = stationId;
-        std::shared_ptr<atv::Source> source = sources[stationId];  
+        std::shared_ptr<atv::Source> source = sources[stationId];
         atv::AnalogReception rec;
         if (this->randomizeSettings)
         {
@@ -138,8 +138,6 @@ void GuiControl::rotateKnobsStart()
       }
     }
   }
-
-  //TODO: update knobs GUI
 }
 
 
@@ -167,8 +165,142 @@ void GuiControl::rotateKnobsSwitch()
       }
     }
   }
+}
+
+
+struct GuiControl::State
+{
+  enum class Type
+  {
+    POWER_UP, // n frames -> SHOW
+    SHOW,
+    FADE_OUT, // n frames -> QUIT
+    SWITCH,   // 0 frames -> SHOW
+    QUIT
+  };
+
+  virtual Type getType() const = 0;
+  virtual Type nextType() const = 0;
+  virtual Control::Operation::Type getOperationType() const
+  {
+    switch (getType())
+    {
+      case Type::POWER_UP:
+        return Control::Operation::Type::NONE;
+      case Type::SHOW:
+        return Control::Operation::Type::NONE;
+      case Type::FADE_OUT:
+        return Control::Operation::Type::NONE;
+      case Type::SWITCH:
+        return Control::Operation::Type::SWITCH;
+      case Type::QUIT:
+        return Control::Operation::Type::QUIT;
+    }
+    return Control::Operation::Type::NONE; // Default case, should not happen
+  }
+
+  virtual ~State() {}
+  State(int _startFrame = 0, int _lastFrame = 0) :
+    startFrame(_startFrame), lastFrame(_lastFrame)
+  { }
+
+  static std::shared_ptr<State> create(Type type, int startFrame, double fps, double lastBrightness = 0.0, int newChannel = 0);
+
+  int startFrame;
+  int lastFrame;
+};
+
+const double POWERUP_DURATION = 6.0;  /* Hardcoded in analogtv.c */
+struct PowerUpState : public GuiControl::State
+{
+  Type getType() const override { return Type::POWER_UP; }
+  Type nextType() const override { return Type::SHOW; }
+  int startFrame;
+  PowerUpState(int _startFrame, double fps) :
+    State(_startFrame, _startFrame + POWERUP_DURATION * fps)
+  { }
+};
+
+struct ShowState : public GuiControl::State
+{
+  Type getType()  const override { return Type::SHOW; }
+  Type nextType() const override { return Type::SHOW; }
+  ShowState(int _startFrame) :
+    State(_startFrame, std::numeric_limits<int>::max())
+  { }
+};
+
+
+const double POWERDOWN_DURATION = 1.0;  /* Only used here */
+struct FadeOutState : public GuiControl::State
+{
+  Type getType()  const override { return Type::FADE_OUT; }
+  Type nextType() const override { return Type::QUIT; }
+  FadeOutState(int _startFrame, double fps, double _lastBrightness) :
+    State(_startFrame, _startFrame + POWERDOWN_DURATION * fps),
+    lastBrightness(_lastBrightness)
+  { }
+  double lastBrightness;
+};
+
+struct SwitchState : public GuiControl::State
+{
+  Type getType() const override  { return Type::SWITCH; }
+  Type nextType() const override { return Type::SHOW; }
+  SwitchState(int _startFrame, int _newChannel) :
+    State(_startFrame, _startFrame + 1),
+    newChannel(_newChannel)
+  { }
+  int newChannel;
+};
+
+struct QuitState : public GuiControl::State
+{
+  Type getType() const override  { return Type::QUIT; }
+  Type nextType() const override { return Type::QUIT; }
+  QuitState(int _startFrame) :
+    State(_startFrame, std::numeric_limits<int>::max())
+  { }
+};
+
+std::shared_ptr<GuiControl::State> GuiControl::State::create(Type type, int startFrame, double fps, double lastBrightness, int newChannel)
+{
+  switch (type)
+  {
+    case Type::POWER_UP:
+      return std::make_shared<PowerUpState>(startFrame, fps);
+    case Type::SHOW:
+      return std::make_shared<ShowState>(startFrame);
+    case Type::FADE_OUT:
+      return std::make_shared<FadeOutState>(startFrame, fps, lastBrightness);
+    case Type::SWITCH:
+      return std::make_shared<SwitchState>(startFrame, newChannel);
+    case Type::QUIT:
+      return std::make_shared<QuitState>(startFrame);
+  }
+  return nullptr;
+}
+
+
+void GuiControl::startFadeOut()
+{
+  this->currentState = std::make_shared<FadeOutState>(this->frameCounter, this->fps, this->knobs.brightness);
+}
+
+void GuiControl::startSwitchChannel(int newChannel)
+{
+  this->currentState = std::make_shared<SwitchState>(this->frameCounter, newChannel);
+}
+
+void GuiControl::run()
+{
+  this->frameCounter = 0;
+  this->channel = this->rng() % this->chanSettings.size();
+  this->currentState = std::make_shared<PowerUpState>(0, this->fps);
+  this->rotateKnobsStart();
   //TODO: update knobs GUI
 }
+
 
 /* Usable range is something like -0.75 to 1.0 */
 static const double minBrightness = -1.5;
@@ -212,6 +344,8 @@ Control::Operation GuiControl::getNext()
       throw std::runtime_error("Unknown state type in GuiControl::getNext()");
       break;
   }
+
+  //TODO: update knobs GUI
 
   Operation op;
   op.type = currentState->getOperationType();
