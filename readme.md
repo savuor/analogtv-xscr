@@ -8,14 +8,13 @@ The original code is written by [Trevor Blackwell](https://tlb.org/), [Jamie Zaw
 It imitates old TV so well that I always wanted to have this as a filter.
 
 OpenCV is used just for video I/O, image loading and memory management.
-wxWidgets will be used for GUI (or will not).
+Qt6 will be used for GUI (or will not).
 
 ### How to build
-* Get OpenCV, wxWidgets and CMake
-  - wxWidgets is not used yet; will be added later (or not)
+* Get OpenCV, Qt6 and CMake
+  - Qt6 is not used yet; will be added later (or not)
 * Run CMake with the flags:
   - `-DOpenCV_DIR=<path_to_OpenCV_installation>`
-  - when wxWidgets is added: `-DwxWidgets_DIR=<path_to_wxWidgets_installation>`
 * Build it
 
 ### How to run
