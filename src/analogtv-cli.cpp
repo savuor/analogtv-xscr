@@ -262,9 +262,6 @@ int main (int argc, char **argv)
   atv::Log::setProgName(progName);
   atv::Log::setVerbosity(oparams.value().verbosity);
 
-  // Check that wxWidgets builds and works
-  //wxPuts(wxT("TODO: implement a real GUI instead"));
-
   run(oparams.value());
 
   return 0;
