@@ -29,7 +29,7 @@ struct Control
   {
     enum class Type
     {
-      QUIT, SWITCH, KNOBS, NONE
+      QUIT, SWITCH, NONE
     };
 
     Type type;
