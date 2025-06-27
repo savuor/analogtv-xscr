@@ -134,31 +134,33 @@ void RandomControl::rotateKnobsStart()
   }
 }
 
-  void RandomControl::rotateKnobsSwitch()
+
+void RandomControl::rotateKnobsSwitch()
+{
+  if (!this->fixSettings && !(this->rng() % 5))
   {
-    if (!this->fixSettings && !(this->rng() % 5))
+    if (this->rng() % 4 == 0) 
     {
-      if (this->rng() % 4 == 0) 
+      this->knobs.tint += pow(this->rng.uniform(-1.0, 1.0), 7) * 180.0 * ((this->rng() & 1) ? 1 : -1);
+    }
+    if (1)
+    {
+      this->knobs.color += this->rng.uniform(0.0, 0.3) * ((this->rng() & 1) ? 1 : -1);
+    }
+    if (0) //(darkp)
+    {
+      if (this->rng() % 4 == 0)
       {
-        this->knobs.tint += pow(this->rng.uniform(-1.0, 1.0), 7) * 180.0 * ((this->rng() & 1) ? 1 : -1);
+        this->knobs.brightness += this->rng.uniform(0.0, 0.15);
       }
-      if (1)
+      if (this->rng() % 4 == 0)
       {
-        this->knobs.color += this->rng.uniform(0.0, 0.3) * ((this->rng() & 1) ? 1 : -1);
-      }
-      if (0) //(darkp)
-      {
-        if (this->rng() % 4 == 0)
-        {
-          this->knobs.brightness += this->rng.uniform(0.0, 0.15);
-        }
-        if (this->rng() % 4 == 0)
-        {
-          this->knobs.contrast += this->rng.uniform(0.0, 0.2) * ((this->rng() & 1) ? 1 : -1);
-        }
+        this->knobs.contrast += this->rng.uniform(0.0, 0.2) * ((this->rng() & 1) ? 1 : -1);
       }
     }
   }
+}
+
 
 void RandomControl::run()
 {
@@ -173,6 +175,8 @@ void RandomControl::run()
 
   // for channel switching
   this->channelLastFrame = 0;
+
+  this->rotateKnobsStart();
 }
 
 

@@ -97,20 +97,18 @@ static void run(Params params)
 
   control->createChannels(sources);
 
-  control->rotateKnobsStart();
-  tv.setKnobs(control->getKnobs());
-
   control->run();
 
   while (true)
   {
-    double curTime = control->getTime();
     auto action = control->getNext();
 
     if (action.type == atv::Control::Operation::Type::QUIT)
     {
       break;
     }
+
+    double curTime = control->getTime();
 
     int curInput = action.channel;
 

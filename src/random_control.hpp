@@ -37,7 +37,7 @@ struct RandomControl : public Control
     return knobs;
   }
 
-  void rotateKnobsStart() override;
+  void rotateKnobsStart();
 
   void rotateKnobsSwitch();
 

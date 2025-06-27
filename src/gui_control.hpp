@@ -140,7 +140,7 @@ struct GuiControl : public Control
     return knobs;
   }
 
-  void rotateKnobsStart() override;
+  void rotateKnobsStart();
 
   void rotateKnobsSwitch();
 
@@ -149,6 +149,7 @@ struct GuiControl : public Control
     this->frameCounter = 0;
     this->channel = this->rng() % this->chanSettings.size();
     this->currentState = std::make_shared<PowerUpState>(0, this->fps);
+    this->rotateKnobsStart();
   }
 
   double getTime() override
