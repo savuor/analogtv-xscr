@@ -8,28 +8,21 @@
 namespace atv
 {
 
+static int barsSourceCount = 0;
+
 struct BarsSource : Source
 {
   static const cv::Size defaultSize; // 320x240
 
-  BarsSource() :
-    Source()
-  {
-    Source::outSize = defaultSize;
-    this->displayTimestamp = false;
-  }
-
   BarsSource(cv::Size _outSize) :
-    BarsSource()
-  {
-    outSize = _outSize;
-  }
+    BarsSource(/*_logoImg*/ { }, _outSize, /*_displayTimestamp*/ false)
+  { }
 
   BarsSource(const cv::Mat& _logoImg, bool _displayTimestamp = false) :
     BarsSource(_logoImg, defaultSize, _displayTimestamp)
   { }
 
-  BarsSource(const cv::Mat& _logoImg, cv::Size _outSize, bool _displayTimestamp = false);
+  BarsSource(const cv::Mat& _logoImg = { }, cv::Size _outSize = defaultSize, bool _displayTimestamp = false);
 
   void update(AnalogInput& input, double time) override;
 
@@ -48,17 +41,25 @@ struct BarsSource : Source
     this->do_ssavi = _do_ssavi;
   }
 
+  std::string getName() const override
+  {
+    return "SMPTE Color Bars #" + std::to_string(number);
+  }
+
   cv::Mat logoImg, logoMask;
   bool displayTimestamp;
+  int number;
 };
 
 const cv::Size BarsSource::defaultSize = cv::Size {320, 240};
 
-BarsSource::BarsSource(const cv::Mat& _logoImg, cv::Size _outSize, bool _displayTimestamp)
+BarsSource::BarsSource(const cv::Mat& _logoImg, cv::Size _outSize, bool _displayTimestamp) :
+  Source()
 {
   this->outSize = _outSize;
   this->logoImg = _logoImg;
   this->displayTimestamp = _displayTimestamp;
+  this->number = barsSourceCount++;
 
   if (_logoImg.empty())
     return;
@@ -152,14 +153,12 @@ void BarsSource::update(AnalogInput& input, double time)
   input.finish_frame();
 }
 
+static int imageSourceCount = 0;
 
 struct ImageSource : Source
 {
   ImageSource() :
-    Source(),
-    img(),
-    resizedImg(),
-    do_ssavi()
+    ImageSource(/*img*/ { }, /*outSize*/ { }, /*_do_ssavi*/ false, /*_displayTimestamp*/ false)
   { }
 
   ImageSource(const cv::Mat& _img, bool _displayTimestamp = false) :
@@ -167,10 +166,12 @@ struct ImageSource : Source
   { }
 
   ImageSource(const cv::Mat& _img, cv::Size _outSize, bool _do_ssavi, bool _displayTimestamp) :
+    Source(),
     img(_img),
     resizedImg(_img),
     do_ssavi(_do_ssavi),
-    displayTimestamp(_displayTimestamp)
+    displayTimestamp(_displayTimestamp),
+    number(imageSourceCount++)
   {
     Source::outSize = _outSize;
   }
@@ -189,10 +190,16 @@ struct ImageSource : Source
 
   void update(AnalogInput& input, double time) override;
 
+  std::string getName() const override
+  {
+    return "Image #" + std::to_string(number);
+  }
+
   cv::Mat img;
   cv::Mat resizedImg;
   bool do_ssavi;
   bool displayTimestamp;
+  int number;
 };
 
 void ImageSource::update(AnalogInput& input, double time)
@@ -279,6 +286,11 @@ struct VideoSource : Source
   void setSsavi(bool _do_ssavi) override
   {
     this->do_ssavi = _do_ssavi;
+  }
+
+  std::string getName() const override
+  {
+    return isCamera ? ("Camera #" + std::to_string(nCamera)) : ("Video File " + videoFileName);
   }
 
   cv::Size frameSize, fittedSize;

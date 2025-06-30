@@ -24,6 +24,8 @@ struct Source
 
   virtual void setSsavi(bool _do_ssavi) = 0;
 
+  virtual std::string getName() const = 0;
+
   virtual ~Source() {}
 
   cv::Size outSize;
