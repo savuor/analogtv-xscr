@@ -20,7 +20,7 @@ struct ChanSetting
   //TODO: join them into one vector
   std::vector<atv::AnalogReception> receptions;
   std::vector<std::shared_ptr<atv::Source>> sources;
-  double noise_level;
+  double noise_level; // noise: 0 to 0.2 or 0 to 5.0, default 0.04
 };
 
 struct Control

@@ -20,16 +20,31 @@
 namespace atv
 {
 
+enum class ParamType
+{
+  Double,
+  Bool,
+  Int
+};
+
+struct ParamInfo
+{
+  ParamType type;
+  double min;
+  double max;
+  double defaultValue;
+  std::string description;
+  void* value;
+};
+
 struct AnalogReception
 {
-  AnalogReception();
-
   AnalogInput input;
 
-  double ofs;
-  double level;
-  double multipath;
-  double freqerr;
+  double ofs;       // offset in samples, 0 to ANALOGTV_SIGNAL_LEN-1, default 0
+  double level;     // 0.05 to 2.0, default 0.3
+  double multipath; // 0.0 to 1.0, default 0.0
+  double freqerr;   // -3.0 to 3.0, default 0.0, only for ghosting stations
 
   double ghostfir[ANALOGTV_GHOSTFIR_LEN];
   // used to update ghostfir
@@ -40,29 +55,174 @@ struct AnalogReception
   double hfloss2;
 
   void update(cv::RNG& rng);
+
+  const std::map<std::string, ParamInfo> paramInfos;
+
+public:
+  AnalogReception()
+    : ofs(), level(), multipath(), freqerr(),
+      hfloss(), hfloss2(),
+      paramInfos()
+  {
+    const_cast<std::map<std::string, ParamInfo>&>(paramInfos) = {
+      {"ofs",       {ParamType::Double,  0.0 , ANALOGTV_SIGNAL_LEN-1.0,  0.0, "Offset in samples", &ofs}},
+      {"level",     {ParamType::Double,  0.05,                     2.0,  0.3, "Signal level",      &level}},
+      {"multipath", {ParamType::Double,  0.0 ,                     1.0,  0.0, "Multipath",         &multipath}},
+      {"freqerr",   {ParamType::Double, -3.0 ,                     3.0,  0.0, "Frequency error",   &freqerr}},
+    };
+    
+    for (const auto& p : paramInfos)
+    {
+      *(static_cast<double*>(p.second.value)) = p.second.defaultValue;
+    }
+
+    std::fill_n(ghostfir, ANALOGTV_GHOSTFIR_LEN, 0.0);
+    std::fill_n(ghostfir2, ANALOGTV_GHOSTFIR_LEN, 0.0);
+  }
+
+  AnalogReception& operator=(const AnalogReception& other)
+  {
+    if (this != &other)
+    {
+      ofs = other.ofs;
+      level = other.level;
+      multipath = other.multipath;
+      freqerr = other.freqerr;
+      hfloss = other.hfloss;
+      hfloss2 = other.hfloss2;
+      std::copy_n(other.ghostfir, ANALOGTV_GHOSTFIR_LEN, ghostfir);
+      std::copy_n(other.ghostfir2, ANALOGTV_GHOSTFIR_LEN, ghostfir2);
+      // paramInfos pointers already point to this->members, no need to reinit
+    }
+    return *this;
+  }
+
+  AnalogReception(const AnalogReception& other)
+      : AnalogReception()
+  {
+    *this = other;
+  }
+
+  std::pair<double, double> getRange(const std::string& param) const
+  {
+    auto it = paramInfos.find(param);
+    if (it != paramInfos.end()) return {it->second.min, it->second.max};
+    return {0.0, 0.0};
+  }
+
+   double getDefault(const std::string& param) const
+   {
+     auto it = paramInfos.find(param);
+     if (it != paramInfos.end()) return it->second.defaultValue;
+     else return 0.0;
+   }
+
+  void setValue(const std::string& param, double value)
+  {
+    auto it = paramInfos.find(param);
+    if (it != paramInfos.end() && it->second.value)
+    {
+      *(static_cast<double*>(it->second.value)) = value;
+    }
+  }
 };
 
 
 struct Knobs
 {
-  double powerup;
-  double brightness;
-  double tint;
-  double color;
-  double contrast;
-  double height;
-  double width;
-  double squish;
+  double powerup;    // default 1000.0, time to power up the TV, in ms
+  double brightness; // brightness: -0.75 to 1.0, default 1.5 or 3.0 (?)
+  double tint;       // 0 to 360, default 5
+  double color;      // 0 to 4.0 or 5.0, default 0.7
+  double contrast;   // 0 to 5.0, default 1.5
+  double height;     // default 1.0
+  double width;      // default 1.0
+  double squish;     // default 0.0
 
-  bool useHashNoise;
-  bool enableHashNoise;
+  bool useHashNoise;    // default 0
+  bool enableHashNoise; // default 1
 
-  double horizontalDesync;
-  double squeezeBottom;
+  double horizontalDesync; // -5.0 to 5.0, default 0.0
+  double squeezeBottom;    // -1.0 to 4.0, default 0.0
 
-  bool useFlutterHorizontalDesync;
+  bool useFlutterHorizontalDesync; // default false
 
-  int channelChangeCycles;
+  int channelChangeCycles; // default 200000, number of cycles to change channel
+
+  const std::map<std::string, ParamInfo> paramInfos;
+
+  //TODO: check all these ranges
+  Knobs()
+    : powerup(1000.0), brightness(1.5), tint(5.0), color(0.7), contrast(1.5),
+      height(1.0), width(1.0), squish(0.0),
+      useHashNoise(false), enableHashNoise(true),
+      horizontalDesync(0.0), squeezeBottom(0.0),
+      useFlutterHorizontalDesync(false),
+      channelChangeCycles(200000),
+      paramInfos {
+        //                                        type       min         max     default  description                     pointer
+        {"powerup",                    {ParamType::Double,   0.0,     5000.0,    1000.0, "Power up time, ms",             &powerup}},
+        {"brightness",                 {ParamType::Double, -0.75,        1.0,       1.5, "Brightness",                    &brightness}},
+        {"tint",                       {ParamType::Double,   0.0,      360.0,       5.0, "Tint",                          &tint}},
+        {"color",                      {ParamType::Double,   0.0,        5.0,       0.7, "Color",                         &color}},
+        {"contrast",                   {ParamType::Double,   0.0,        5.0,       1.5, "Contrast",                      &contrast}},
+        {"height",                     {ParamType::Double,   0.5,        2.0,       1.0, "Height",                        &height}},
+        {"width",                      {ParamType::Double,   0.5,        2.0,       1.0, "Width",                         &width}},
+        {"squish",                     {ParamType::Double,   0.0,        1.0,       0.0, "Squish",                        &squish}},
+        {"useHashNoise",               {ParamType::Bool,     0.0,        1.0,       0.0, "Use hash noise",                &useHashNoise}},
+        {"enableHashNoise",            {ParamType::Bool,     0.0,        1.0,       1.0, "Enable hash noise",             &enableHashNoise}},
+        {"horizontalDesync",           {ParamType::Double,  -5.0,        5.0,       0.0, "Horizontal desync",             &horizontalDesync}},
+        {"squeezeBottom",              {ParamType::Double,  -1.0,        4.0,       0.0, "Squeeze bottom",                &squeezeBottom}},
+        {"useFlutterHorizontalDesync", {ParamType::Bool,     0.0,        1.0,       0.0, "Use flutter horizontal desync", &useFlutterHorizontalDesync}},
+        {"channelChangeCycles",        {ParamType::Int,      0.0, 1000'000.0, 200'000.0, "Channel change cycles",         &channelChangeCycles}}
+      }
+  {
+    for (const auto& p : paramInfos)
+    {
+      this->setValue(p.first, p.second.defaultValue);
+    }
+  }
+
+  std::pair<double, double> getRange(const std::string& param) const
+  {
+    auto it = paramInfos.find(param);
+    if (it != paramInfos.end()) return {it->second.min, it->second.max};
+    return {0.0, 0.0};
+  }
+
+  double getDefault(const std::string& param) const
+  {
+    auto it = paramInfos.find(param);
+    if (it != paramInfos.end()) return it->second.defaultValue;
+    else return 0.0;
+  }
+
+  ParamType getType(const std::string& param) const
+  {
+    auto it = paramInfos.find(param);
+    if (it != paramInfos.end()) return it->second.type;
+    else return ParamType::Double;
+  }
+
+  void setValue(const std::string& param, double value)
+  {
+    auto it = paramInfos.find(param);
+    if (it != paramInfos.end() && it->second.value)
+    {
+      switch (it->second.type)
+      {
+        case ParamType::Double:
+          *static_cast<double*>(it->second.value) = value;
+          break;
+        case ParamType::Bool:
+          *static_cast<bool*>(it->second.value) = (std::abs(value) > std::numeric_limits<double>::epsilon());
+          break;
+        case ParamType::Int:
+          *static_cast<int*>(it->second.value) = static_cast<int>(value);
+          break;
+      }
+    }
+  }
 };
 
 
