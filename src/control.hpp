@@ -14,13 +14,18 @@ struct ChanSetting
   ChanSetting() :
     receptions(),
     sources(),
-    noise_level(0)
+    noise_level(0),
+    chanParams {
+      {"noise_level", {atv::ParamType::Double, 0.0, 5.0, 0.04, "Channel noise level", &noise_level}}
+    }
   { }
 
   //TODO: join them into one vector
   std::vector<atv::AnalogReception> receptions;
   std::vector<std::shared_ptr<atv::Source>> sources;
   double noise_level; // noise: 0 to 0.2 or 0 to 5.0, default 0.04
+
+  std::map<std::string, ParamInfo> chanParams;
 };
 
 struct Control
