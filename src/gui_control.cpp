@@ -2,16 +2,539 @@
 
 #include "gui_control.hpp"
 
+#include <thread>
+
+#include <QtCore/QVariant>
+#include <QtCore/QSignalMapper>
+#include <QtWidgets/QApplication>
+#include <QtWidgets/QCheckBox>
+#include <QtWidgets/QComboBox>
+#include <QtWidgets/QDial>
+#include <QtWidgets/QDoubleSpinBox>
+#include <QtWidgets/QGridLayout>
+#include <QtWidgets/QGroupBox>
+#include <QtWidgets/QHBoxLayout>
+#include <QtWidgets/QLabel>
+#include <QtWidgets/QMainWindow>
+#include <QtWidgets/QPushButton>
+#include <QtWidgets/QSlider>
+#include <QtWidgets/QSpinBox>
+#include <QtWidgets/QTabWidget>
+#include <QtWidgets/QVBoxLayout>
+#include <QtWidgets/QWidget>
+#include <QtWidgets/QMessageBox>
+
+
+#include <QtCore/qmetatype.h>
+
+#include <QtCore/qtmochelpers.h>
+
+#include <memory>
+
+
+#include <QtCore/qxptype_traits.h>
+#if !defined(Q_MOC_OUTPUT_REVISION)
+#error "The header file 'mainwindow.h' doesn't include <QObject>."
+#elif Q_MOC_OUTPUT_REVISION != 69
+#error "This file was generated using the moc from 6.9.1. It"
+#error "cannot be used with the include files from this version of Qt."
+#error "(The moc has changed too much.)"
+#endif
+
+#ifndef Q_CONSTINIT
+#define Q_CONSTINIT
+#endif
+
+
 namespace atv
 {
+
+class SliderSpinboxLabelWidget : public QWidget
+{
+  Q_OBJECT
+
+public:
+  explicit SliderSpinboxLabelWidget(const QString& title = { }, QWidget* parent = nullptr)
+    : QWidget(parent)
+  {
+    v = 0.0;
+
+    slider  = new QSlider(Qt::Horizontal, this);
+    spinBox = new QDoubleSpinBox(this);
+    label   = new QLabel(title, this);
+
+    auto* layout = new QHBoxLayout(this);
+    layout->addWidget(slider);
+    layout->addWidget(spinBox);
+    layout->addWidget(label);
+
+    connect(slider, &QSlider::valueChanged, this, [this](int value)
+    {
+      this->setValueInternal(value);
+      emit valueChanged(this->v);
+    });
+    //connect(spinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged), this, [this](double value)
+    connect(spinBox, &QDoubleSpinBox::valueChanged, this, [this](double value)
+    {
+      this->setValueInternal(value);
+      emit valueChanged(this->v);
+    });
+
+    this->setRange(0.0, 100.0);
+  }
+
+  void setValue(double value)
+  {
+    setValueInternal(value);
+  }
+
+  double value() const
+  {
+    return this->v;
+  }
+
+  void setRange(double min, double max)
+  {
+      spinBox->setRange(min, max);
+      slider->setRange(static_cast<int>(min), static_cast<int>(max));
+  }
+
+signals:
+  void valueChanged(double value);
+
+private:
+
+  void setValueInternal(double value)
+  {
+    v = value;
+    slider->blockSignals(true);
+    spinBox->blockSignals(true);
+    spinBox->setValue(v);
+    slider->setValue(static_cast<int>(v));
+    slider->blockSignals(false);
+    spinBox->blockSignals(false);
+  }
+
+  QSlider* slider;
+  QDoubleSpinBox* spinBox;
+  QLabel* label;
+  double v;
+};
+
+
+class QTintWidget : public QWidget
+{
+  Q_OBJECT
+
+public:
+  explicit QTintWidget(QWidget* parent = nullptr)
+    : QWidget(parent)
+  {
+    v = 0.0;
+
+    auto *layout = new QHBoxLayout(this);
+
+    dial = new QDial(this);
+    spinBox = new QDoubleSpinBox(this);
+    label   = new QLabel("Tint", this);
+
+    layout->addWidget(label);
+    layout->addWidget(dial);
+    layout->addWidget(spinBox);
+
+    connect(dial, &QDial::valueChanged, this, [this](int value)
+    {
+      this->setValueInternal(value);
+      emit valueChanged(this->v);
+    });
+
+    connect(spinBox, &QDoubleSpinBox::valueChanged, this, [this](double value)
+    {
+      this->setValueInternal(value);
+      emit valueChanged(this->v);
+    });
+
+    dial->setWrapping(true);
+    dial->setNotchesVisible(false);
+    dial->setRange(0, 360);
+    spinBox->setRange(0.0, 360.0);
+  }
+
+  void setValue(double value)
+  {
+    setValueInternal(value);
+  }
+
+  double value() const
+  {
+    return this->v;
+  }
+
+signals:
+  void valueChanged(double value);
+
+private:
+
+  void setValueInternal(double value)
+  {
+    v = value;
+    dial->blockSignals(true);
+    spinBox->blockSignals(true);
+    spinBox->setValue(v);
+    dial->setValue(static_cast<int>(v));
+    dial->blockSignals(false);
+    spinBox->blockSignals(false);
+  }
+
+  QDial* dial;
+  QDoubleSpinBox* spinBox;
+  QLabel* label;
+  double v;
+};
+
+
+// class MainWindow : public QMainWindow
+// {
+//   Q_OBJECT
+
+// public:
+
+//   Knobs& knobs;
+//   std::vector<ChanSetting>& chanSettings;
+
+//   MainWindow(Knobs& _knobs, std::vector<ChanSetting>& _chanSettings, QWidget *parent = nullptr):
+//     QMainWindow(parent),
+//     knobs(_knobs),
+//     chanSettings(_chanSettings)
+//   {
+//     this->setWindowTitle("MainWindow");
+//     this->resize(1061, 869);
+
+//       QWidget* centralwidget = new QWidget(this);
+//       QPushButton* pushButton = new QPushButton("\342\217\274 OFF", centralwidget);
+//       pushButton->setGeometry(QRect(10, 10, 71, 32));
+//       pushButton->setFont(QFont({QString::fromUtf8("Noto Serif")}, /*pointSize*/ 14));
+
+//       createColorGroupBox(centralwidget);
+
+//       createGeometryGroupBox(centralwidget);
+
+//       createMiscelaneousGroupBox(centralwidget);
+
+      
+
+//       {
+//         QGroupBox* groupBox = new QGroupBox("Channel", centralwidget);
+//         groupBox->setGeometry(QRect(20, 490, 671, 331));
+//         QVBoxLayout* vertLayout = new QVBoxLayout(groupBox);
+        
+//         SliderSpinboxLabelWidget* noiseLevelWidget = new SliderSpinboxLabelWidget("Noise Level", groupBox);
+//         connect(noiseLevelWidget, &SliderSpinboxLabelWidget::valueChanged, [this](double value)
+//         {
+//           emit MainWindow::valueChanged("noise_level", value);
+//         });
+//         vertLayout->addWidget(noiseLevelWidget);
+
+//         QTabWidget* tabWidget = new QTabWidget(groupBox);
+
+//         for (int i = 0; i < 2; ++i)
+//         {
+//           QWidget * tab = new QWidget();
+//           QVBoxLayout * layout = new QVBoxLayout(tab);
+
+//           QComboBox * sourcesCombo = new QComboBox(tab);
+//           sourcesCombo->addItem("Source 1");
+//           sourcesCombo->addItem("Source 2");
+//           layout->addWidget(sourcesCombo);
+
+//           QGridLayout * gridLayout = new QGridLayout();
+
+//           SliderSpinboxLabelWidget* levelWidget          = new SliderSpinboxLabelWidget("Level", tab);
+//           SliderSpinboxLabelWidget* multipathWidget      = new SliderSpinboxLabelWidget("Multipath", tab);
+//           SliderSpinboxLabelWidget* offsetWidget         = new SliderSpinboxLabelWidget("Offset", tab);
+//           SliderSpinboxLabelWidget* frequencyErrorWidget = new SliderSpinboxLabelWidget("Frequency Error", tab);
+
+//           gridLayout->addWidget(levelWidget,          0, 0, 1, 1);
+//           gridLayout->addWidget(multipathWidget,      0, 1, 1, 1);
+//           gridLayout->addWidget(offsetWidget,         1, 0, 1, 1);
+//           gridLayout->addWidget(frequencyErrorWidget, 1, 1, 1, 1);
+
+//           layout->addLayout(gridLayout);
+
+//           tabWidget->addTab(tab, "Reception " + QString::number(i));
+//         }
+
+//         //tabWidget->addTab(new QWidget(), "Add New...");
+
+//         vertLayout->addWidget(tabWidget);
+
+//         tabWidget->setCurrentIndex(0);
+
+//       }
+//     }
+
+//   void createColorGroupBox(QWidget* centralwidget)
+//   {
+//     QGroupBox* groupBox = new QGroupBox("Color", centralwidget);
+//     groupBox->setGeometry(QRect(20, 50, 351, 231));
+//     QVBoxLayout* vertLayout = new QVBoxLayout(groupBox);
+
+//     SliderSpinboxLabelWidget* colorKnobWidget = new SliderSpinboxLabelWidget("Color", groupBox);
+//     connect(colorKnobWidget, &SliderSpinboxLabelWidget::valueChanged, [this](double value)
+//     {
+//       emit MainWindow::valueChanged("color", value);
+//     });
+//     vertLayout->addWidget(colorKnobWidget);
+
+//     SliderSpinboxLabelWidget* brightnessKnobWidget = new SliderSpinboxLabelWidget("Brightness", groupBox);
+//     connect(brightnessKnobWidget, &SliderSpinboxLabelWidget::valueChanged, [this](double value)
+//     {
+//       emit MainWindow::valueChanged("brightness", value);
+//     });
+//     vertLayout->addWidget(brightnessKnobWidget);
+
+//     SliderSpinboxLabelWidget* contrastKnobWidget = new SliderSpinboxLabelWidget("Contrast", groupBox);
+//     connect(contrastKnobWidget, &SliderSpinboxLabelWidget::valueChanged, [this](double value)
+//     {
+//       emit MainWindow::valueChanged("contrast", value);
+//     });
+//     vertLayout->addWidget(contrastKnobWidget);
+
+//     QTintWidget* tintWidget = new QTintWidget(groupBox);
+//     connect(tintWidget, &QTintWidget::valueChanged, [this](double value)
+//     {
+//       emit MainWindow::valueChanged("tint", value);
+//     });
+//     vertLayout->addWidget(tintWidget);
+//   }
+
+//   void createGeometryGroupBox(QWidget* centralwidget)
+//   {
+//     QGroupBox* groupBox = new QGroupBox("Geometry", centralwidget);
+//     groupBox->setGeometry(QRect(390, 20, 471, 251));
+
+//     QVBoxLayout* vertLayout = new QVBoxLayout(groupBox);
+//     SliderSpinboxLabelWidget* widthKnobWidget = new SliderSpinboxLabelWidget("Width", groupBox);
+//     connect(widthKnobWidget, &SliderSpinboxLabelWidget::valueChanged, [this](double value)
+//     {
+//       emit MainWindow::valueChanged("width", value);
+//     });
+//     vertLayout->addWidget(widthKnobWidget);
+    
+//     SliderSpinboxLabelWidget* heightKnobWidget = new SliderSpinboxLabelWidget("Height", groupBox);
+//     connect(heightKnobWidget, &SliderSpinboxLabelWidget::valueChanged, [this](double value)
+//     {
+//       emit MainWindow::valueChanged("height", value);
+//     });
+//     vertLayout->addWidget(heightKnobWidget);
+    
+//     SliderSpinboxLabelWidget* squishKnobWidget = new SliderSpinboxLabelWidget("Squish", groupBox);
+//     connect(squishKnobWidget, &SliderSpinboxLabelWidget::valueChanged, [this](double value)
+//     {
+//       emit MainWindow::valueChanged("squish", value);
+//     });
+//     vertLayout->addWidget(squishKnobWidget);
+
+//     SliderSpinboxLabelWidget* squeezeBottomKnobWidget = new SliderSpinboxLabelWidget("Squeeze Bottom", groupBox);
+//     connect(squeezeBottomKnobWidget, &SliderSpinboxLabelWidget::valueChanged, [this](double value)
+//     {
+//       emit MainWindow::valueChanged("squeeze_bottom", value);
+//     });
+//     vertLayout->addWidget(squeezeBottomKnobWidget);
+//   }
+
+//   void createMiscelaneousGroupBox(QWidget* centralwidget)
+//   {
+//     QGroupBox* groupBox = new QGroupBox("Miscelaneous", centralwidget);
+//     groupBox->setGeometry(QRect(420, 300, 551, 181));
+//     QVBoxLayout* vertLayout = new QVBoxLayout(groupBox);
+
+//     SliderSpinboxLabelWidget* powerupKnobWidget = new SliderSpinboxLabelWidget("Power Up", groupBox);
+//     connect(powerupKnobWidget, &SliderSpinboxLabelWidget::valueChanged, [this](double value)
+//     {
+//       emit MainWindow::valueChanged("powerup", value);
+//     });
+//     vertLayout->addWidget(powerupKnobWidget);
+
+//     SliderSpinboxLabelWidget* horizontalDesyncKnobWidget = new SliderSpinboxLabelWidget("Horizontal Desync", groupBox);
+//     connect(horizontalDesyncKnobWidget, &SliderSpinboxLabelWidget::valueChanged, [this](double value)
+//     {
+//       emit MainWindow::valueChanged("horizontal_desync", value);
+//     });
+//     vertLayout->addWidget(horizontalDesyncKnobWidget);
+
+//     QHBoxLayout* horizontalLayout = new QHBoxLayout();
+//     QCheckBox* flutterBox      = new QCheckBox("Use Flutter Horizontal Desync", groupBox);
+//     connect(flutterBox, &QCheckBox::stateChanged, [this](int state)
+//     {
+//       emit MainWindow::valueChanged("flutter_horizontal_desync", state == Qt::Checked ? 1.0 : 0.0);
+//     });
+//     horizontalLayout->addWidget(flutterBox);
+//     QCheckBox* hashNoiseUseBox = new QCheckBox("Use Hash Noise", groupBox);
+//     connect(hashNoiseUseBox, &QCheckBox::stateChanged, [this](int state)
+//     {
+//       emit MainWindow::valueChanged("hash_noise_use", state == Qt::Checked ? 1.0 : 0.0);
+//     });
+//     horizontalLayout->addWidget(hashNoiseUseBox);
+
+//     QCheckBox* hashNoiseOnBox  = new QCheckBox("Enable Hash Noise", groupBox);
+//     connect(hashNoiseOnBox, &QCheckBox::stateChanged, [this](int state)
+//     {
+//       emit MainWindow::valueChanged("hash_noise_on", state == Qt::Checked ? 1.0 : 0.0);
+//     });
+//     horizontalLayout->addWidget(hashNoiseOnBox);
+
+//     vertLayout->addLayout(horizontalLayout);
+
+//     SliderSpinboxLabelWidget* cyclesKnobWidget = new SliderSpinboxLabelWidget("Channel Change Cycles", groupBox);
+//     connect(cyclesKnobWidget, &SliderSpinboxLabelWidget::valueChanged, [this](double value)
+//     {
+//       emit MainWindow::valueChanged("channel_change_cycles", value);
+//     });
+//     vertLayout->addWidget(cyclesKnobWidget);
+//   }
+
+//   ~MainWindow()
+//   {  }
+
+//   void updateKnobs(const QString& name, double value)
+//   {
+//     if (name == "tint") {
+//       this->knobs.tint = value;
+//     } else if (name == "color") {
+//       this->knobs.color = value;
+//     } else if (name == "brightness") {
+//       this->knobs.brightness = value;
+//     } else if (name == "contrast") {
+//       this->knobs.contrast = value;
+//     } else if (name == "width") {
+//       this->knobs.width = value;
+//     } else if (name == "height") {
+//       this->knobs.height = value;
+//     } else if (name == "squish") {
+//       this->knobs.squish = value;
+//     } else if (name == "squeeze_bottom") {
+//       this->knobs.squeezeBottom = value;
+//     } else if (name == "powerup") {
+//       this->knobs.powerup = value;
+//     } else if (name == "horizontal_desync") {
+//       this->knobs.horizontalDesync = value;
+//     } else if (name == "hash_noise_use") {
+//       this->knobs.useHashNoise = static_cast<int>(value);
+//     } else if (name == "hash_noise_on") {
+//       this->knobs.enableHashNoise = static_cast<int>(value);
+//     } else if (name == "flutter_horizontal_desync") {
+//       this->knobs.useFlutterHorizontalDesync = static_cast<bool>(value);
+//     } else if (name == "channel_change_cycles") {
+//       this->knobs.channelChangeCycles = static_cast<int>(value);
+//     }
+//   }
+
+//   void changeChannel(int newChannel)
+//   {
+//     if (newChannel < 0 || newChannel >= static_cast<int>(this->chanSettings.size()))
+//     {
+//       QMessageBox::warning(this, "Invalid Channel", "The channel number is out of range.");
+//       return;
+//     }
+
+//     this->channel = newChannel;
+//   }
+
+//   void startPowerOff()
+//   {
+
+//   }
+// };
+
+
+class ControlWindow : public QMainWindow
+{
+  Q_OBJECT
+
+public:
+  explicit ControlWindow(GuiControl* _control, QWidget* parent = nullptr)
+    : QMainWindow(parent), control(_control)
+  {
+    this->control->onParamChanged = [this]()
+    {
+      std::cerr << "ControlWindow: onParamChanged called" << std::endl;
+      //QMetaObject::invokeMethod(this, [this]() { this->updateGui(); }, Qt::QueuedConnection);
+    };
+
+    setWindowTitle("AnalogTV Control");
+    resize(200, 100);
+
+    QWidget* centralWidget = new QWidget(this);
+    setCentralWidget(centralWidget);
+
+    QVBoxLayout* layout = new QVBoxLayout(centralWidget);
+
+    QPushButton* offButton = new QPushButton("\342\217\274 OFF", centralWidget);
+    offButton->setFont(QFont({QString::fromUtf8("Noto Serif")}, 14));
+    layout->addWidget(offButton);
+
+    connect(offButton, &QPushButton::clicked, [this]()
+    {
+      std::lock_guard<std::mutex> lock(this->control->stateMutex);
+      this->control->startFadeOut();
+    });
+
+    QTintWidget* tintWidget = new QTintWidget(centralWidget);
+    tintWidget->setValue(this->control->knobs.tint);
+    connect(tintWidget, &QTintWidget::valueChanged, [this](double value)
+    {
+      this->updateKnobs("tint", value);
+    });
+    layout->addWidget(tintWidget);
+    registerWidget("tint", tintWidget);
+
+
+    // QDial* dial = new QDial(this);
+    // dial->setWrapping(true);
+    // dial->setNotchesVisible(false);
+    // dial->setRange(0, 360);
+    // dial->setEnabled(true);
+    // layout->addWidget(dial);
+  }
+
+private:
+  GuiControl* control;
+  std::map<std::string, QTintWidget*> widgets;
+
+  void registerWidget(const std::string& name, QTintWidget* widget)
+  {
+    widgets[name] = widget;
+  }
+
+  void updateKnobs(const QString& name, double value)
+  {
+    // No mutex here: stateMutex may be held by getNext() which calls onParamChanged,
+    // and locking here would cause a deadlock.
+    // Writing a double is safe enough; the value will be picked up on the next getNext() call.
+    this->control->knobs.setValue(name.toStdString(), value);
+  }
+
+  void updateGui()
+  {
+    std::cerr << "updateGui called, widgets.size()=" << widgets.size() << std::endl;
+    for (const auto& pair : widgets)
+    {
+      const std::string& name = pair.first;
+      QTintWidget* widget = pair.second;
+      double value = *static_cast<double*>(this->control->knobs.paramInfos.at(name).value);
+      std::cerr << "  " << name << " = " << value << std::endl;
+      widget->setValue(value);
+    }
+  }
+};
+
 
 GuiControl::GuiControl(double _fps, bool _randomizeSettings)
 {
   this->fps = _fps;
   this->randomizeSettings = _randomizeSettings;
-  //TODO: initialize GUI itself
 }
-
 
 const int MAX_MULTICHAN = 2;
 
@@ -78,8 +601,6 @@ void GuiControl::createChannels(const std::vector<std::shared_ptr<atv::Source>> 
 
     this->chanSettings.push_back(channelSetting);
   }
-
-  //TODO: create GUI for channels
 }
 
 
@@ -298,7 +819,18 @@ void GuiControl::run()
   this->channel = this->rng() % this->chanSettings.size();
   this->currentState = std::make_shared<PowerUpState>(0, this->fps);
   this->rotateKnobsStart();
-  //TODO: update knobs GUI
+
+  //TODO: create GUI for channels
+  std::thread thread([this]()
+  {
+    int argc = 0;
+    char** argv = nullptr;
+    QApplication app(argc, argv);
+    ControlWindow window(this);
+    window.show();
+    app.exec();
+  });
+  thread.detach();
 }
 
 
@@ -307,6 +839,8 @@ static const double minBrightness = -1.5;
 
 Control::Operation GuiControl::getNext()
 {
+  std::lock_guard<std::mutex> lock(this->stateMutex);
+
   double curTime = this->frameCounter / this->fps;
 
   switch (currentState->getType())
@@ -345,7 +879,15 @@ Control::Operation GuiControl::getNext()
       break;
   }
 
-  //TODO: update knobs GUI
+  if (this->onParamChanged)
+  {
+    std::cerr << "calling onParamChanged" << std::endl;
+    this->onParamChanged();
+  }
+  else
+  {
+    std::cerr << "onParamChanged is null" << std::endl;
+  }
 
   Operation op;
   op.type = currentState->getOperationType();
@@ -362,3 +904,5 @@ Control::Operation GuiControl::getNext()
 }
 
 } // ::atv
+
+#include "gui_control.moc"

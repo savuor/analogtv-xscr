@@ -56,8 +56,11 @@ struct GuiControl : public Control
   int frameCounter;
   int channel;
   std::shared_ptr<State> currentState;
+  std::mutex stateMutex;
 
   Knobs knobs;
+
+  std::function<void()> onParamChanged;
 };
 
 

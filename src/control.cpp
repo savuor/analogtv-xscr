@@ -2,6 +2,7 @@
 
 #include "control.hpp"
 #include "random_control.hpp"
+//#include "gui_control.hpp"
 
 namespace atv
 {
@@ -33,10 +34,6 @@ std::shared_ptr<Control> Control::create(const atv::ParametricString& desc)
       }
 
       control = std::make_shared<RandomControl>(fixSettings, fps, duration, powerUpDown);
-    }
-    else if (desc.className == "gui")
-    {
-      throw std::runtime_error("GUI control is not implemented yet");
     }
     else
     {
