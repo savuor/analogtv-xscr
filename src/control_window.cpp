@@ -7,6 +7,7 @@
 
 #include <QtWidgets/QDial>
 #include <QtWidgets/QDoubleSpinBox>
+#include <QtWidgets/QGridLayout>
 #include <QtWidgets/QHBoxLayout>
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QPushButton>
@@ -105,28 +106,28 @@ private:
 };
 
 
-class SliderSpinboxLabelWidget : public QWidget
+class SliderSpinboxKnob : public QObject
 {
   Q_OBJECT
 
 public:
-  explicit SliderSpinboxLabelWidget(const QString& title = {}, QWidget* parent = nullptr)
-    : QWidget(parent)
+  // adds label/slider/spinbox to row `row` of `grid` so all knobs in the grid share column widths
+  SliderSpinboxKnob(const QString& title, QWidget* parent, QGridLayout* grid, int row)
+    : QObject(parent)
   {
     v = 0.0;
     minV = 0.0;
     maxV = 100.0;
 
-    label   = new QLabel(title, this);
-    slider  = new QSlider(Qt::Horizontal, this);
-    spinBox = new QDoubleSpinBox(this);
+    label   = new QLabel(title, parent);
+    slider  = new QSlider(Qt::Horizontal, parent);
+    spinBox = new QDoubleSpinBox(parent);
 
     slider->setRange(0, sliderSteps);
 
-    auto* layout = new QHBoxLayout(this);
-    layout->addWidget(label);
-    layout->addWidget(slider);
-    layout->addWidget(spinBox);
+    grid->addWidget(label,   row, 0);
+    grid->addWidget(slider,  row, 1);
+    grid->addWidget(spinBox, row, 2);
 
     // slider is always integer-valued, so its value is rescaled to/from the [minV, maxV] range
     connect(slider, &QSlider::valueChanged, this, [this](int value)
@@ -218,22 +219,25 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, QWidget* parent)
   });
   layout->addWidget(tintWidget);
 
-  auto addSliderKnob = [this, &knobs, layout, centralWidget](const QString& title, const std::string& paramName, double currentValue)
+  QGridLayout* knobGrid = new QGridLayout();
+  knobGrid->setColumnStretch(1, 1); // slider column fills remaining space, keeping all sliders the same width
+  layout->addLayout(knobGrid);
+
+  auto addSliderKnob = [this, &knobs, knobGrid, centralWidget](const QString& title, const std::string& paramName, double currentValue, int row)
   {
-    SliderSpinboxLabelWidget* widget = new SliderSpinboxLabelWidget(title, centralWidget);
+    SliderSpinboxKnob* knob = new SliderSpinboxKnob(title, centralWidget, knobGrid, row);
     auto [minV, maxV] = knobs.getRange(paramName);
-    widget->setRange(minV, maxV);
-    widget->setValue(currentValue);
-    connect(widget, &SliderSpinboxLabelWidget::valueChanged, [this, paramName](double value)
+    knob->setRange(minV, maxV);
+    knob->setValue(currentValue);
+    connect(knob, &SliderSpinboxKnob::valueChanged, [this, paramName](double value)
     {
       emit knobChanged(QString::fromStdString(paramName), value);
     });
-    layout->addWidget(widget);
   };
 
-  addSliderKnob("Color",      "color",      knobs.color);
-  addSliderKnob("Brightness", "brightness", knobs.brightness);
-  addSliderKnob("Contrast",   "contrast",   knobs.contrast);
+  addSliderKnob("Color",      "color",      knobs.color,      0);
+  addSliderKnob("Brightness", "brightness", knobs.brightness, 1);
+  addSliderKnob("Contrast",   "contrast",   knobs.contrast,   2);
 }
 
 } // ::atv
