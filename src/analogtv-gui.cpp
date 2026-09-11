@@ -9,9 +9,9 @@
 #include "control_window.hpp"
 
 #include <chrono>
+#include <thread>
 
 #include <QtWidgets/QApplication>
-#include <QtCore/QTimer>
 
 
 static cv::Size getBestSize(const std::vector<std::shared_ptr<atv::Source>>& sources, cv::Size size)
@@ -132,21 +132,22 @@ int main(int argc, char** argv)
     }
   });
 
-  // Frame loop via QTimer
   const int powerUpLastFrame = static_cast<int>(POWERUP_DURATION * settings.fps);
+  const auto frameInterval = std::chrono::milliseconds(1000 / settings.fps);
+  const auto loopStart = std::chrono::steady_clock::now();
 
-  QTimer frameTimer;
-  frameTimer.setInterval(1000 / settings.fps);
-  QObject::connect(&frameTimer, &QTimer::timeout, [&]()
+  bool done = false;
+  while (!done)
   {
+    app.processEvents();
+
     double curTime = static_cast<double>(frameCounter) / settings.fps;
 
-    bool quit = false;
     if (isPoweringDown)
     {
       if (frameCounter >= powerDownLastFrame)
       {
-        quit = true;
+        done = true;
       }
       else
       {
@@ -159,7 +160,7 @@ int main(int argc, char** argv)
       knobs.powerup = curTime;
     }
 
-    if(!quit)
+    if (!done)
     {
       tv.setKnobs(knobs);
 
@@ -180,14 +181,13 @@ int main(int argc, char** argv)
 
       frameCounter++;
     }
-    else
-    {
-      frameTimer.stop();
-      app.quit();
-    }
-  });
 
-  frameTimer.start();
+    // wait for the next scheduled slot; if a frame took longer than frameInterval, skip ahead
+    // instead of trying to catch up on missed slots one by one
+    auto elapsed = std::chrono::steady_clock::now() - loopStart;
+    long long nextSlot = elapsed / frameInterval + 1;
+    std::this_thread::sleep_until(loopStart + nextSlot * frameInterval);
+  }
 
-  return app.exec();
+  return 0;
 }
