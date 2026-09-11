@@ -12,7 +12,12 @@
 			//"OpenCV_DIR" : "/home/savuor/builds/ocv/4.x/Debug/install/lib/cmake/opencv4",
 			//"OpenCV_DIR" : "/home/savuor/builds/ocv/5.x/Debug/install/lib/cmake/opencv5",
 			"OpenCV_DIR" : "/home/savuor/builds/ocv/5.x/Release/install/lib/cmake/opencv5",
-			"wxWidgets_DIR" : "/home/savuor/builds/wxWidgets/install/lib/cmake/wxWidgets/"
+			"Qt6_DIR" : "/home/savuor/installs/qt/6.9.1/gcc_64/lib/cmake/Qt6",
+			"nlohmann_json_DIR" : "/home/savuor/builds/json/install/share/cmake/nlohmann_json/"
+		},
+		"files.associations": {
+			"qapplication": "cpp",
+			"variant": "cpp"
 		}
 	},
 	"launch": {
@@ -27,10 +32,12 @@
 				"type": "cppdbg",
 				"request": "launch",
 				"program": "${command:cmake.buildDirectory}/analogtv-cli",
+				"preLaunchTask": "CMake: build",
 				"args": [
 					"--verbose", "2",
-					//"--control", ":random:duration=60:powerup:fixsettings",
-					"--control", ":random:duration=60:powerup",
+					"--control", ":random:duration=60:powerup:fixsettings",
+					//"--control", ":random:duration=60:powerup",
+					//"--control", ":gui:fps=30",
 					"--size", "1280", "1024",
 					"--seed", "1234",
 					"--in", //"~/Pictures/90s/*",
@@ -61,8 +68,52 @@
 						"ignoreFailures": true
 					}
 				]
+			},
+			{
+				"name": "analogtv-gui",
+				"type": "cppdbg",
+				"request": "launch",
+				"program": "${command:cmake.buildDirectory}/analogtv-gui",
+				"preLaunchTask": "CMake: build",
+				"args": [ "${workspaceFolder}/example.json" ],
+				"stopAtEntry": false,
+				"cwd": "${fileDirname}",
+				"environment": [],
+				"externalConsole": false,
+				"MIMode": "gdb",
+				"setupCommands": [
+					{
+						"description": "Enable pretty-printing for gdb",
+						"text": "-enable-pretty-printing",
+						"ignoreFailures": true
+					},
+					{
+						"description": "Set Disassembly Flavor to Intel",
+						"text": "-gdb-set disassembly-flavor intel",
+						"ignoreFailures": true
+					}
+				]
 			}
 		],
 		"compounds": []
+	},
+	"tasks": {
+		"version": "2.0.0",
+		"tasks": [
+			{
+				"type": "cmake",
+				"label": "CMake: build",
+				"command": "build",
+				"targets": [
+					"all"
+				],
+				"group": {
+					"kind": "build",
+					"isDefault": true
+				},
+				"problemMatcher": [],
+				"detail": "CMake build all"
+			}
+		]
 	}
 }

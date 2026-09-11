@@ -11,12 +11,19 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic -Wpedantic -pedantic-errors -W
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS} -O2")
 
 find_package(OpenCV)
-#find_package(wxWidgets REQUIRED COMPONENTS net core base CONFIG)
+
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets)
+find_package(nlohmann_json REQUIRED)
+
+set(CMAKE_AUTOMOC ON)
+
+#qt_standard_project_setup()
 
 include_directories(
     "./src"
     ${OpenCV_INCLUDE_DIRS}
-    ${wxWidgets_USE_FILE}
+    ${Qt6Core_INCLUDE_DIRS}
+    ${Qt6Widgets_INCLUDE_DIRS}
 )
 
 add_executable(analogtv-cli
@@ -28,7 +35,20 @@ add_executable(analogtv-cli
     "./src/utils.cpp"
     "./src/control.cpp"
     "./src/random_control.cpp"
-    "./src/gui_control.cpp"
+    #"./src/gui_control.cpp"
 )
 
-target_link_libraries(analogtv-cli ${OpenCV_LIBS} ${wxWidgets_LIBRARIES})
+target_link_libraries(analogtv-cli PRIVATE ${OpenCV_LIBS})
+
+add_executable(analogtv-gui
+    "./src/analogtv-gui.cpp"
+    "./src/json_settings.cpp"
+    "./src/control_window.cpp"
+    "./src/source.cpp"
+    "./src/output.cpp"
+    "./src/analogtv.cpp"
+    "./src/analogtv_input.cpp"
+    "./src/utils.cpp"
+)
+
+target_link_libraries(analogtv-gui PRIVATE ${OpenCV_LIBS} Qt6::Core Qt6::Widgets nlohmann_json::nlohmann_json)

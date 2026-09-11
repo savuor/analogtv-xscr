@@ -1,0 +1,44 @@
+{
+    "verbose": 2,
+    "seed": 1234,
+    "size": [1280, 1024],
+    "fps": 30,
+    "knobs": {
+        "tint": 5.0,
+        "color": 0.7,
+        "brightness": 0.02,
+        "contrast": 1.5,
+        "height": 1.0,
+        "width": 1.0,
+        "squish": 0.0,
+        "powerup": 1000.0,
+        "useHashNoise": false,
+        "enableHashNoise": true,
+        "horizontalDesync": 0.0,
+        "squeezeBottom": 0.0,
+        "useFlutterHorizontalDesync": false,
+        "channelChangeCycles": 200000
+    },
+    "sources": [
+        ":video:/home/savuor/Videos/smile_1tv_92.mp4:timestamp",
+        ":bars:/home/savuor/Pictures/ort.png:timestamp",
+        ":image:/home/savuor/Pictures/90s/photo_2023-03-18_00-36-37.jpg:timestamp",
+        ":cam:0:timestamp"
+    ],
+    "commented_out_sources": [
+        "/home/savuor/Pictures/90s/*",
+        "/home/savuor/Videos/disney_ort.mp4",
+        "/home/savuor/Videos/koroleva_tulips.mp4",
+        "/home/savuor/Videos/smile_1tv_92.mp4",
+        ":bars:/home/savuor/code/xscreensaver/hacks/images/amiga.png"
+    ],
+    "outputs": [
+        ":highgui"
+    ],
+    "commented_out_outputs": [
+        "/home/savuor/Videos/90s.mp4"
+    ],
+    "channels": [
+        { "noise_level": 0.04, "receptions": [{ "source": 0, "level": 0.3 }] }
+    ]
+}
