@@ -8,6 +8,7 @@
 #include <QtWidgets/QDial>
 #include <QtWidgets/QDoubleSpinBox>
 #include <QtWidgets/QGridLayout>
+#include <QtWidgets/QGroupBox>
 #include <QtWidgets/QHBoxLayout>
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QPushButton>
@@ -211,21 +212,24 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, QWidget* parent)
     emit quitRequested();
   });
 
-  QTintWidget* tintWidget = new QTintWidget(centralWidget);
+  QGroupBox* colorGroupBox = new QGroupBox("Color", centralWidget);
+  QVBoxLayout* colorLayout = new QVBoxLayout(colorGroupBox);
+
+  QTintWidget* tintWidget = new QTintWidget(colorGroupBox);
   tintWidget->setValue(knobs.tint);
   connect(tintWidget, &QTintWidget::valueChanged, [this](double value)
   {
     emit knobChanged("tint", value);
   });
-  layout->addWidget(tintWidget);
+  colorLayout->addWidget(tintWidget);
 
   QGridLayout* knobGrid = new QGridLayout();
   knobGrid->setColumnStretch(1, 1); // slider column fills remaining space, keeping all sliders the same width
-  layout->addLayout(knobGrid);
+  colorLayout->addLayout(knobGrid);
 
-  auto addSliderKnob = [this, &knobs, knobGrid, centralWidget](const QString& title, const std::string& paramName, double currentValue, int row)
+  auto addSliderKnob = [this, &knobs, knobGrid, colorGroupBox](const QString& title, const std::string& paramName, double currentValue, int row)
   {
-    SliderSpinboxKnob* knob = new SliderSpinboxKnob(title, centralWidget, knobGrid, row);
+    SliderSpinboxKnob* knob = new SliderSpinboxKnob(title, colorGroupBox, knobGrid, row);
     auto [minV, maxV] = knobs.getRange(paramName);
     knob->setRange(minV, maxV);
     knob->setValue(currentValue);
@@ -238,6 +242,8 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, QWidget* parent)
   addSliderKnob("Color",      "color",      knobs.color,      0);
   addSliderKnob("Brightness", "brightness", knobs.brightness, 1);
   addSliderKnob("Contrast",   "contrast",   knobs.contrast,   2);
+
+  layout->addWidget(colorGroupBox);
 }
 
 } // ::atv
