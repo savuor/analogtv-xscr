@@ -1,7 +1,7 @@
 {
     "verbose": 2,
     "seed": 1234,
-    "size": [1280, 1024],
+    "size": [1024, 768],
     "fps": 30,
     "knobs": {
         "tint": 5.0,
@@ -39,6 +39,9 @@
         "/home/savuor/Videos/90s.mp4"
     ],
     "channels": [
-        { "noise_level": 0.04, "receptions": [{ "source": 0, "level": 0.3 }] }
+        { "noise_level": 0.04, "receptions": [{ "source": 0, "level": 0.3 }] },
+        { "noise_level": 0.02, "receptions": [{ "source": 1, "level": 0.5 }] },
+        { "noise_level": 0.03, "receptions": [{ "source": 2, "level": 0.4 }] },
+        { "noise_level": 0.01, "receptions": [{ "source": 3, "level": 0.6 }] }
     ]
 }
