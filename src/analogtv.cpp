@@ -1080,6 +1080,9 @@ void AnalogTV::draw_signal(const std::vector<float>& rx_signal, double rx_signal
   if (this->image.empty())
     throw std::runtime_error("Image is not initialized somehow");
 
+  this->image.setZero();
+  outBuffer.setZero();
+
   this->setup_frame(rx_signal_level);
 
   this->sync(rx_signal);
