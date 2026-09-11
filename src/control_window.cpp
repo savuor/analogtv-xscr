@@ -74,6 +74,7 @@ public:
     dial->setNotchesVisible(false);
     dial->setRange(0, 360);
     spinBox->setRange(0.0, 360.0);
+    spinBox->setWrapping(true);
   }
 
   void setValue(double value)
