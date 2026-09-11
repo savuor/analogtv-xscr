@@ -16,7 +16,11 @@ public:
 
 signals:
   void knobChanged(const QString& name, double value);
+  void powerToggled(bool isOn);
   void quitRequested();
+
+protected:
+  void closeEvent(QCloseEvent* event) override;
 };
 
 } // ::atv

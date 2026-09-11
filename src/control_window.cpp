@@ -18,6 +18,8 @@
 #include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QWidget>
 
+#include <QtGui/QCloseEvent>
+
 #include <QtCore/qmetatype.h>
 #include <QtCore/qtmochelpers.h>
 #include <QtCore/qxptype_traits.h>
@@ -206,13 +208,16 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, QWidget* parent)
 
   QVBoxLayout* layout = new QVBoxLayout(centralWidget);
 
-  QPushButton* offButton = new QPushButton("\342\217\274 OFF", centralWidget);
-  offButton->setFont(QFont({QString::fromUtf8("Noto Serif")}, 14));
-  layout->addWidget(offButton);
+  QPushButton* powerButton = new QPushButton("\342\217\274 OFF", centralWidget);
+  powerButton->setFont(QFont({QString::fromUtf8("Noto Serif")}, 14));
+  powerButton->setCheckable(true);
+  powerButton->setChecked(false); // default state is off
+  layout->addWidget(powerButton);
 
-  connect(offButton, &QPushButton::clicked, [this]()
+  connect(powerButton, &QPushButton::toggled, [powerButton, this](bool isOn)
   {
-    emit quitRequested();
+    powerButton->setText(isOn ? "\342\217\274 ON" : "\342\217\274 OFF");
+    emit powerToggled(isOn);
   });
 
   QGroupBox* colorGroupBox = new QGroupBox("Color", centralWidget);
@@ -303,6 +308,12 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, QWidget* parent)
   miscLayout->addLayout(cyclesLayout);
 
   layout->addWidget(miscGroupBox);
+}
+
+void ControlWindow::closeEvent(QCloseEvent* event)
+{
+  emit quitRequested();
+  QMainWindow::closeEvent(event);
 }
 
 } // ::atv

@@ -117,70 +117,105 @@ int main(int argc, char** argv)
 
   int currentChannel = 0;
   int frameCounter = 0;
+
+  bool isOn = false; // TV is off by default
+  bool isPoweringUp = false;
   bool isPoweringDown = false;
-  int powerDownLastFrame = std::numeric_limits<int>::max();
-  double initialPowerDownBrightness = 0.0;
+  int transitionStartFrame = 0;
+  double transitionStartBrightness = minBrightness;
+  const double originalBrightness = knobs.brightness;
+
+  knobs.brightness = minBrightness;
+  knobs.powerup = 0.0;
+
+  const int powerUpDurationFrames = static_cast<int>(POWERUP_DURATION * settings.fps);
   const int powerDownDurationFrames = static_cast<int>(POWERDOWN_DURATION * settings.fps);
 
-  QObject::connect(&window, &atv::ControlWindow::quitRequested, [&]()
+  QObject::connect(&window, &atv::ControlWindow::powerToggled, [&](bool on)
   {
-    if (!isPoweringDown)
+    if (on && !isOn)
     {
+      isOn = true;
+      isPoweringUp = true;
+      isPoweringDown = false;
+      transitionStartFrame = frameCounter;
+      transitionStartBrightness = knobs.brightness;
+    }
+    else if (!on && isOn)
+    {
+      isOn = false;
       isPoweringDown = true;
-      powerDownLastFrame = frameCounter + powerDownDurationFrames;
-      initialPowerDownBrightness = knobs.brightness;
+      isPoweringUp = false;
+      transitionStartFrame = frameCounter;
+      transitionStartBrightness = knobs.brightness;
     }
   });
 
-  const int powerUpLastFrame = static_cast<int>(POWERUP_DURATION * settings.fps);
+  bool done = false;
+  QObject::connect(&window, &atv::ControlWindow::quitRequested, [&]()
+  {
+    done = true;
+  });
+
   const auto frameInterval = std::chrono::milliseconds(1000 / settings.fps);
   const auto loopStart = std::chrono::steady_clock::now();
 
-  bool done = false;
   while (!done)
   {
     app.processEvents();
 
+    // real elapsed time, kept flowing regardless of the TV's power state
     double curTime = static_cast<double>(frameCounter) / settings.fps;
 
-    if (isPoweringDown)
+    if (isPoweringUp)
     {
-      if (frameCounter >= powerDownLastFrame)
+      int elapsed = frameCounter - transitionStartFrame;
+      if (elapsed >= powerUpDurationFrames)
       {
-        done = true;
+        isPoweringUp = false;
+        knobs.brightness = originalBrightness;
+        knobs.powerup = POWERUP_DURATION;
       }
       else
       {
-        double rate = static_cast<double>(powerDownLastFrame - frameCounter) / powerDownDurationFrames;
-        knobs.brightness = minBrightness * (1.0 - rate) + initialPowerDownBrightness * rate;
+        double rate = static_cast<double>(elapsed) / powerUpDurationFrames;
+        knobs.brightness = transitionStartBrightness + (originalBrightness - transitionStartBrightness) * rate;
+        knobs.powerup = static_cast<double>(elapsed) / settings.fps;
       }
     }
-    else if (frameCounter < powerUpLastFrame)
+    else if (isPoweringDown)
     {
-      knobs.powerup = curTime;
+      int elapsed = frameCounter - transitionStartFrame;
+      if (elapsed >= powerDownDurationFrames)
+      {
+        isPoweringDown = false;
+        knobs.brightness = minBrightness;
+      }
+      else
+      {
+        double rate = static_cast<double>(elapsed) / powerDownDurationFrames;
+        knobs.brightness = transitionStartBrightness + (minBrightness - transitionStartBrightness) * rate;
+      }
     }
 
-    if (!done)
+    tv.setKnobs(knobs);
+
+    atv::ChanSetting& curChannel_s = channels[currentChannel];
+    for (size_t i = 0; i < curChannel_s.receptions.size(); i++)
     {
-      tv.setKnobs(knobs);
-
-      atv::ChanSetting& curChannel_s = channels[currentChannel];
-      for (size_t i = 0; i < curChannel_s.receptions.size(); i++)
-      {
-        atv::AnalogReception& rec = curChannel_s.receptions[i];
-        curChannel_s.sources[i]->update(rec.input, curTime);
-        rec.update(rng);
-      }
-
-      cv::Mat4b outBuffer = tv.draw(curChannel_s.noise_level, false, curChannel_s.receptions);
-
-      for (const auto& o : outputs)
-      {
-        o->send(outBuffer);
-      }
-
-      frameCounter++;
+      atv::AnalogReception& rec = curChannel_s.receptions[i];
+      curChannel_s.sources[i]->update(rec.input, curTime);
+      rec.update(rng);
     }
+
+    cv::Mat4b outBuffer = tv.draw(curChannel_s.noise_level, false, curChannel_s.receptions);
+
+    for (const auto& o : outputs)
+    {
+      o->send(outBuffer);
+    }
+
+    frameCounter++;
 
     // wait for the next scheduled slot; if a frame took longer than frameInterval, skip ahead
     // instead of trying to catch up on missed slots one by one
