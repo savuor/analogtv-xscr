@@ -15,6 +15,7 @@
 #include <ctime>
 
 #include <iostream>
+#include <functional>
 #include <memory>
 #include <set>
 #include <map>
