@@ -183,6 +183,34 @@ struct Knobs
     }
   }
 
+  Knobs(const Knobs& other)
+    : Knobs()
+  {
+    *this = other;
+  }
+
+  Knobs& operator=(const Knobs& other)
+  {
+    if (this != &other)
+    {
+      powerup = other.powerup;
+      brightness = other.brightness;
+      tint = other.tint;
+      color = other.color;
+      contrast = other.contrast;
+      height = other.height;
+      width = other.width;
+      squish = other.squish;
+      useHashNoise = other.useHashNoise;
+      enableHashNoise = other.enableHashNoise;
+      horizontalDesync = other.horizontalDesync;
+      squeezeBottom = other.squeezeBottom;
+      useFlutterHorizontalDesync = other.useFlutterHorizontalDesync;
+      channelChangeCycles = other.channelChangeCycles;
+    }
+    return *this;
+  }
+
   std::pair<double, double> getRange(const std::string& param) const
   {
     auto it = paramInfos.find(param);
