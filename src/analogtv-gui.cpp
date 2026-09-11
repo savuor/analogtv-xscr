@@ -43,6 +43,10 @@ int main(int argc, char** argv)
     return 1;
   }
 
+  // Constructed first (and so destroyed last) so that OpenCV's Qt-based highgui
+  // backend, used by "outputs", always has a live QApplication session.
+  QApplication app(argc, argv);
+
   std::string jsonPath = argv[1];
 
   atv::AppSettings settings = atv::loadSettings(jsonPath);
@@ -100,9 +104,6 @@ int main(int argc, char** argv)
 
   // Create TV
   atv::SetTopBox tv(seed, outSize.width, outSize.height);
-
-  // Qt application on the main thread
-  QApplication app(argc, argv);
 
   atv::Knobs knobs = settings.knobs;
   atv::ControlWindow window(knobs);
