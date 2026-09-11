@@ -881,7 +881,7 @@ void AnalogTV::parallel_for_draw_lines(const cv::Range& range, const std::vector
 
     int scw = this->subwidth * scanwidth;
     if (scw > this->subwidth)
-        scw = this->usewidth;
+        scw = this->subwidth;
 
     int scl = this->subwidth/2 - scw/2;
     int scr = this->subwidth/2 + scw/2;
