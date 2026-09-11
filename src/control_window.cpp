@@ -223,13 +223,14 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, QWidget* parent)
   });
   colorLayout->addWidget(tintWidget);
 
-  QGridLayout* knobGrid = new QGridLayout();
-  knobGrid->setColumnStretch(1, 1); // slider column fills remaining space, keeping all sliders the same width
-  colorLayout->addLayout(knobGrid);
+  QGridLayout* colorGrid = new QGridLayout();
+  colorGrid->setColumnStretch(1, 1); // slider column fills remaining space, keeping all sliders the same width
+  colorLayout->addLayout(colorGrid);
 
-  auto addSliderKnob = [this, &knobs, knobGrid, colorGroupBox](const QString& title, const std::string& paramName, double currentValue, int row)
+  auto addSliderKnob = [this, &knobs](const QString& title, const std::string& paramName, double currentValue,
+                                       QWidget* groupBox, QGridLayout* grid, int row)
   {
-    SliderSpinboxKnob* knob = new SliderSpinboxKnob(title, colorGroupBox, knobGrid, row);
+    SliderSpinboxKnob* knob = new SliderSpinboxKnob(title, groupBox, grid, row);
     auto [minV, maxV] = knobs.getRange(paramName);
     knob->setRange(minV, maxV);
     knob->setValue(currentValue);
@@ -239,11 +240,25 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, QWidget* parent)
     });
   };
 
-  addSliderKnob("Color",      "color",      knobs.color,      0);
-  addSliderKnob("Brightness", "brightness", knobs.brightness, 1);
-  addSliderKnob("Contrast",   "contrast",   knobs.contrast,   2);
+  addSliderKnob("Color",      "color",      knobs.color,      colorGroupBox, colorGrid, 0);
+  addSliderKnob("Brightness", "brightness", knobs.brightness, colorGroupBox, colorGrid, 1);
+  addSliderKnob("Contrast",   "contrast",   knobs.contrast,   colorGroupBox, colorGrid, 2);
 
   layout->addWidget(colorGroupBox);
+
+  QGroupBox* geometryGroupBox = new QGroupBox("Geometry", centralWidget);
+  QVBoxLayout* geometryLayout = new QVBoxLayout(geometryGroupBox);
+
+  QGridLayout* geometryGrid = new QGridLayout();
+  geometryGrid->setColumnStretch(1, 1); // slider column fills remaining space, keeping all sliders the same width
+  geometryLayout->addLayout(geometryGrid);
+
+  addSliderKnob("Width",          "width",         knobs.width,         geometryGroupBox, geometryGrid, 0);
+  addSliderKnob("Height",         "height",        knobs.height,        geometryGroupBox, geometryGrid, 1);
+  addSliderKnob("Squish",         "squish",        knobs.squish,        geometryGroupBox, geometryGrid, 2);
+  addSliderKnob("Squeeze Bottom", "squeezeBottom", knobs.squeezeBottom, geometryGroupBox, geometryGrid, 3);
+
+  layout->addWidget(geometryGroupBox);
 }
 
 } // ::atv
