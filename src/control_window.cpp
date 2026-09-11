@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 
+#include <QtWidgets/QCheckBox>
 #include <QtWidgets/QDial>
 #include <QtWidgets/QDoubleSpinBox>
 #include <QtWidgets/QGridLayout>
@@ -13,6 +14,7 @@
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QSlider>
+#include <QtWidgets/QSpinBox>
 #include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QWidget>
 
@@ -259,6 +261,47 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, QWidget* parent)
   addSliderKnob("Squeeze Bottom", "squeezeBottom", knobs.squeezeBottom, geometryGroupBox, geometryGrid, 3);
 
   layout->addWidget(geometryGroupBox);
+
+  QGroupBox* miscGroupBox = new QGroupBox("Miscelaneous", centralWidget);
+  QVBoxLayout* miscLayout = new QVBoxLayout(miscGroupBox);
+
+  QGridLayout* miscGrid = new QGridLayout();
+  miscGrid->setColumnStretch(1, 1); // slider column fills remaining space, keeping all sliders the same width
+  miscLayout->addLayout(miscGrid);
+
+  addSliderKnob("Power Up",           "powerup",          knobs.powerup,          miscGroupBox, miscGrid, 0);
+  addSliderKnob("Horizontal Desync",  "horizontalDesync", knobs.horizontalDesync, miscGroupBox, miscGrid, 1);
+
+  auto addCheckBox = [this, miscGroupBox, miscLayout](const QString& title, const std::string& paramName, bool currentValue)
+  {
+    QCheckBox* checkBox = new QCheckBox(title, miscGroupBox);
+    checkBox->setChecked(currentValue);
+    connect(checkBox, &QCheckBox::checkStateChanged, [this, paramName](Qt::CheckState state)
+    {
+      emit knobChanged(QString::fromStdString(paramName), state == Qt::Checked ? 1.0 : 0.0);
+    });
+    miscLayout->addWidget(checkBox);
+  };
+
+  addCheckBox("Use Flutter Horizontal Desync", "useFlutterHorizontalDesync", knobs.useFlutterHorizontalDesync);
+  addCheckBox("Use Hash Noise",                "useHashNoise",               knobs.useHashNoise);
+  addCheckBox("Enable Hash Noise",             "enableHashNoise",            knobs.enableHashNoise);
+
+  QHBoxLayout* cyclesLayout = new QHBoxLayout();
+  QLabel* cyclesLabel = new QLabel("Channel Change Cycles", miscGroupBox);
+  QSpinBox* cyclesSpinBox = new QSpinBox(miscGroupBox);
+  auto [cyclesMin, cyclesMax] = knobs.getRange("channelChangeCycles");
+  cyclesSpinBox->setRange(static_cast<int>(cyclesMin), static_cast<int>(cyclesMax));
+  cyclesSpinBox->setValue(knobs.channelChangeCycles);
+  connect(cyclesSpinBox, &QSpinBox::valueChanged, [this](int value)
+  {
+    emit knobChanged("channelChangeCycles", value);
+  });
+  cyclesLayout->addWidget(cyclesLabel);
+  cyclesLayout->addWidget(cyclesSpinBox);
+  miscLayout->addLayout(cyclesLayout);
+
+  layout->addWidget(miscGroupBox);
 }
 
 } // ::atv
