@@ -147,7 +147,7 @@ void BarsSource::update(AnalogInput& input, double time)
   if (this->displayTimestamp)
   {
     cv::Mat osd = drawTime(time);
-   input.load_ximage(osd, cv::Mat4b(), 240, 240, osd.cols, osd.rows, this->outSize.width, this->outSize.height);
+    input.load_ximage(osd, cv::Mat4b(), 240, 240, osd.cols, osd.rows, this->outSize.width, this->outSize.height);
   }
 
   input.finish_frame();
