@@ -190,6 +190,8 @@ int main(int argc, char** argv)
     done = true;
   });
 
+  cv::Mat4b outBuffer(outSize);
+
   const auto frameInterval = std::chrono::milliseconds(1000 / settings.fps);
   const auto loopStart = std::chrono::steady_clock::now();
 
@@ -247,21 +249,16 @@ int main(int argc, char** argv)
         rec.update(rng);
       }
 
-      cv::Mat4b outBuffer = tv.draw(curChannel.noise_level, switchChannel, curChannel.receptions);
-
-      for (const auto& o : outputs)
-      {
-        o->send(outBuffer);
-      }
+      outBuffer = tv.draw(curChannel.noise_level, switchChannel, curChannel.receptions);
     }
     else
     {
-      cv::Mat4b blackFrame(outSize, cv::Vec4b(0, 0, 0, 0));
+      outBuffer.setZero();
+    }
 
-      for (const auto& o : outputs)
-      {
-        o->send(blackFrame);
-      }
+    for (const auto &o : outputs)
+    {
+      o->send(outBuffer);
     }
 
     frameCounter++;
