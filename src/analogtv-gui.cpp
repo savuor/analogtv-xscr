@@ -233,22 +233,35 @@ int main(int argc, char** argv)
 
     tv.setKnobs(knobs);
 
-    atv::ChanSetting& curChannel = channels[currentChannel];
-    for (size_t i = 0; i < curChannel.receptions.size(); i++)
-    {
-      atv::AnalogReception& rec = curChannel.receptions[i];
-      curChannel.sources[i]->update(rec.input, curTime);
-      rec.update(rng);
-    }
-
     bool switchChannel = pendingChannelSwitch;
     pendingChannelSwitch = false;
 
-    cv::Mat4b outBuffer = tv.draw(curChannel.noise_level, switchChannel, curChannel.receptions);
-
-    for (const auto& o : outputs)
+    // while fully off, don't touch sources or render a frame, just send a black one; curTime keeps flowing regardless
+    if (isOn || isPoweringDown)
     {
-      o->send(outBuffer);
+      atv::ChanSetting& curChannel = channels[currentChannel];
+      for (size_t i = 0; i < curChannel.receptions.size(); i++)
+      {
+        atv::AnalogReception& rec = curChannel.receptions[i];
+        curChannel.sources[i]->update(rec.input, curTime);
+        rec.update(rng);
+      }
+
+      cv::Mat4b outBuffer = tv.draw(curChannel.noise_level, switchChannel, curChannel.receptions);
+
+      for (const auto& o : outputs)
+      {
+        o->send(outBuffer);
+      }
+    }
+    else
+    {
+      cv::Mat4b blackFrame(outSize, cv::Vec4b(0, 0, 0, 0));
+
+      for (const auto& o : outputs)
+      {
+        o->send(blackFrame);
+      }
     }
 
     frameCounter++;
