@@ -217,8 +217,8 @@ static void makeCollapsible(QGroupBox* box)
 
 
 ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
-                             const std::vector<std::shared_ptr<atv::Source>>& allSources,
-                             QWidget* parent)
+                             const std::vector<std::shared_ptr<atv::Source>>& sources,
+                             int numChannels, QWidget* parent)
   : QMainWindow(parent)
 {
   setWindowTitle("AnalogTV Control");
@@ -333,23 +333,77 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
 
   layout->addWidget(miscGroupBox);
 
-  QGroupBox* channelGroupBox = new QGroupBox("Channel", centralWidget);
+  channelGroupBox = new QGroupBox("Channel", centralWidget);
   makeCollapsible(channelGroupBox);
-  QVBoxLayout* channelLayout = new QVBoxLayout(channelGroupBox);
+  channelLayout = new QVBoxLayout(channelGroupBox);
+  this->allSources = &sources;
+
+  populateChannelSection(channel);
+
+  layout->addWidget(channelGroupBox);
+
+  QGroupBox* channelsGroupBox = new QGroupBox("Channels", centralWidget);
+  makeCollapsible(channelsGroupBox);
+  QGridLayout* channelsGrid = new QGridLayout(channelsGroupBox);
+
+  const int channelButtonColumns = 4;
+  for (int i = 0; i < numChannels; ++i)
+  {
+    QPushButton* channelButton = new QPushButton(QString::number(i + 1), channelsGroupBox);
+    connect(channelButton, &QPushButton::clicked, [this, i]()
+    {
+      emit channelSwitchRequested(i);
+    });
+    channelsGrid->addWidget(channelButton, i / channelButtonColumns, i % channelButtonColumns);
+  }
+
+  layout->addWidget(channelsGroupBox);
+}
+
+void ControlWindow::setChannel(atv::ChanSetting& channel)
+{
+  populateChannelSection(channel);
+}
+
+void ControlWindow::clearLayout(QLayout* layoutToClear)
+{
+  while (QLayoutItem* item = layoutToClear->takeAt(0))
+  {
+    if (QWidget* widget = item->widget())
+    {
+      widget->deleteLater();
+      delete item;
+    }
+    else if (QLayout* childLayout = item->layout())
+    {
+      // a QLayout is itself a QLayoutItem, so item and childLayout are the same
+      // object here: deleting childLayout already deletes item, don't double-delete
+      clearLayout(childLayout);
+      delete childLayout;
+    }
+    else
+    {
+      delete item;
+    }
+  }
+}
+
+void ControlWindow::addRangedSliderKnob(const QString& title, double currentValue, double minV, double maxV,
+                                         QWidget* groupBox, QGridLayout* grid, int row, std::function<void(double)> onChange)
+{
+  SliderSpinboxKnob* knob = new SliderSpinboxKnob(title, groupBox, grid, row);
+  knob->setRange(minV, maxV);
+  knob->setValue(currentValue);
+  connect(knob, &SliderSpinboxKnob::valueChanged, onChange);
+}
+
+void ControlWindow::populateChannelSection(atv::ChanSetting& channel)
+{
+  clearLayout(channelLayout);
 
   QGridLayout* channelGrid = new QGridLayout();
   channelGrid->setColumnStretch(1, 1); // slider column fills remaining space, keeping all sliders the same width
   channelLayout->addLayout(channelGrid);
-
-  // generic slider knob, for objects (ChanSetting/AnalogReception) other than Knobs
-  auto addRangedSliderKnob = [this](const QString& title, double currentValue, double minV, double maxV,
-                                     QWidget* groupBox, QGridLayout* grid, int row, std::function<void(double)> onChange)
-  {
-    SliderSpinboxKnob* knob = new SliderSpinboxKnob(title, groupBox, grid, row);
-    knob->setRange(minV, maxV);
-    knob->setValue(currentValue);
-    connect(knob, &SliderSpinboxKnob::valueChanged, onChange);
-  };
 
   auto [noiseMin, noiseMax] = channel.getRange("noise_level");
   addRangedSliderKnob("Noise Level", channel.noise_level, noiseMin, noiseMax, channelGroupBox, channelGrid, 0,
@@ -371,10 +425,10 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
 
     QComboBox* sourceCombo = new QComboBox(tab);
     int currentSourceIdx = -1;
-    for (size_t s = 0; s < allSources.size(); ++s)
+    for (size_t s = 0; s < allSources->size(); ++s)
     {
-      sourceCombo->addItem(QString::fromStdString(allSources[s]->getName()));
-      if (allSources[s] == channel.sources[i]) currentSourceIdx = static_cast<int>(s);
+      sourceCombo->addItem(QString::fromStdString((*allSources)[s]->getName()));
+      if ((*allSources)[s] == channel.sources[i]) currentSourceIdx = static_cast<int>(s);
     }
     sourceCombo->setCurrentIndex(currentSourceIdx);
     connect(sourceCombo, &QComboBox::currentIndexChanged, [this, index](int sourceIdx)
@@ -387,8 +441,8 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
     recGrid->setColumnStretch(1, 1);
     tabLayout->addLayout(recGrid);
 
-    auto addReceptionSlider = [this, addRangedSliderKnob, tab, recGrid, index](const QString& title, const std::string& paramName,
-                                                                                double currentValue, double minV, double maxV, int row)
+    auto addReceptionSlider = [this, tab, recGrid, index](const QString& title, const std::string& paramName,
+                                                           double currentValue, double minV, double maxV, int row)
     {
       addRangedSliderKnob(title, currentValue, minV, maxV, tab, recGrid, row, [this, index, paramName](double value)
       {
@@ -410,8 +464,6 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
 
     receptionsTabs->addTab(tab, QString("Reception %1").arg(index));
   }
-
-  layout->addWidget(channelGroupBox);
 }
 
 void ControlWindow::closeEvent(QCloseEvent* event)

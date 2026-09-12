@@ -106,10 +106,10 @@ int main(int argc, char** argv)
   atv::SetTopBox tv(seed, outSize.width, outSize.height);
 
   int currentChannel = 0;
-  atv::ChanSetting& channel = channels[currentChannel];
+  atv::ChanSetting* currentChannelPtr = &channels[currentChannel];
 
   atv::Knobs knobs = settings.knobs;
-  atv::ControlWindow window(knobs, channel, sources);
+  atv::ControlWindow window(knobs, *currentChannelPtr, sources, static_cast<int>(channels.size()));
   window.show();
 
   QObject::connect(&window, &atv::ControlWindow::knobChanged,
@@ -119,21 +119,34 @@ int main(int argc, char** argv)
     });
 
   QObject::connect(&window, &atv::ControlWindow::chanParamChanged,
-    [&channel](const QString& name, double value)
+    [&currentChannelPtr](const QString& name, double value)
     {
-      channel.setValue(name.toStdString(), value);
+      currentChannelPtr->setValue(name.toStdString(), value);
     });
 
   QObject::connect(&window, &atv::ControlWindow::receptionParamChanged,
-    [&channel](int index, const QString& name, double value)
+    [&currentChannelPtr](int index, const QString& name, double value)
     {
-      channel.receptions.at(index).setValue(name.toStdString(), value);
+      currentChannelPtr->receptions.at(index).setValue(name.toStdString(), value);
     });
 
   QObject::connect(&window, &atv::ControlWindow::receptionSourceChanged,
-    [&channel, &sources](int index, int sourceIndex)
+    [&currentChannelPtr, &sources](int index, int sourceIndex)
     {
-      channel.sources.at(index) = sources.at(sourceIndex);
+      currentChannelPtr->sources.at(index) = sources.at(sourceIndex);
+    });
+
+  bool pendingChannelSwitch = false;
+  QObject::connect(&window, &atv::ControlWindow::channelSwitchRequested,
+    [&currentChannel, &currentChannelPtr, &channels, &pendingChannelSwitch, &window](int channelIndex)
+    {
+      if (channelIndex >= 0 && channelIndex < static_cast<int>(channels.size()) && channelIndex != currentChannel)
+      {
+        currentChannel = channelIndex;
+        currentChannelPtr = &channels[currentChannel];
+        pendingChannelSwitch = true;
+        window.setChannel(*currentChannelPtr);
+      }
     });
 
   int frameCounter = 0;
@@ -220,14 +233,18 @@ int main(int argc, char** argv)
 
     tv.setKnobs(knobs);
 
-    for (size_t i = 0; i < channel.receptions.size(); i++)
+    atv::ChanSetting& curChannel = channels[currentChannel];
+    for (size_t i = 0; i < curChannel.receptions.size(); i++)
     {
-      atv::AnalogReception& rec = channel.receptions[i];
-      channel.sources[i]->update(rec.input, curTime);
+      atv::AnalogReception& rec = curChannel.receptions[i];
+      curChannel.sources[i]->update(rec.input, curTime);
       rec.update(rng);
     }
 
-    cv::Mat4b outBuffer = tv.draw(channel.noise_level, false, channel.receptions);
+    bool switchChannel = pendingChannelSwitch;
+    pendingChannelSwitch = false;
+
+    cv::Mat4b outBuffer = tv.draw(curChannel.noise_level, switchChannel, curChannel.receptions);
 
     for (const auto& o : outputs)
     {
