@@ -57,9 +57,9 @@ int main(int argc, char** argv)
 
   // Create sources
   std::vector<std::shared_ptr<atv::Source>> sources;
-  for (const auto& s : settings.sourceStrings)
+  for (const auto& s : settings.sources)
   {
-    sources.push_back(atv::Source::create(atv::ParametricString::parse(s)));
+    sources.push_back(atv::Source::create(s));
   }
 
   cv::Size outSize = getBestSize(sources, settings.size);
@@ -93,9 +93,9 @@ int main(int argc, char** argv)
 
   // Create outputs
   std::vector<std::shared_ptr<atv::Output>> outputs;
-  for (const auto& s : settings.outputStrings)
+  for (const auto& s : settings.outputs)
   {
-    outputs.push_back(atv::Output::create(atv::ParametricString::parse(s), outSize));
+    outputs.push_back(atv::Output::create(s, outSize));
   }
 
   // Create TV

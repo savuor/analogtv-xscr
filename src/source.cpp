@@ -419,6 +419,61 @@ void VideoSource::update(AnalogInput& input, double time)
 
 
 // the sources can be tuned later for different size or other params
+std::shared_ptr<Source> Source::create(const nlohmann::json& j)
+{
+  if (j.is_string())
+  {
+    return create(atv::ParametricString::parse(j.get<std::string>()));
+  }
+
+  if (!j.is_object())
+  {
+    throw std::runtime_error("Invalid source JSON: expected object or string");
+  }
+
+  std::string type = j.value("type", "");
+  bool timestamp = j.value("timestamp", false);
+
+  if (type == "bars")
+  {
+    std::string logoPath = j.value("logo", "");
+    cv::Mat logo;
+    if (!logoPath.empty())
+    {
+      logo = loadImage(logoPath);
+    }
+    return std::make_shared<BarsSource>(logo, timestamp);
+  }
+  else if (type == "camera" || type == "cam")
+  {
+    int id = j.value("id", 0);
+    return std::make_shared<VideoSource>(id, timestamp);
+  }
+  else if (type == "video")
+  {
+    std::string path = j.value("path", j.value("file", ""));
+    if (path.empty())
+    {
+      throw std::runtime_error("Video source missing 'path' property");
+    }
+    return std::make_shared<VideoSource>(path, timestamp);
+  }
+  else if (type == "image")
+  {
+    std::string path = j.value("path", j.value("file", ""));
+    if (path.empty())
+    {
+      throw std::runtime_error("Image source missing 'path' property");
+    }
+    cv::Mat img = loadImage(path);
+    return std::make_shared<ImageSource>(img, timestamp);
+  }
+  else
+  {
+    throw std::runtime_error("Unknown source type in JSON: " + type);
+  }
+}
+
 std::shared_ptr<Source> Source::create(const atv::ParametricString& desc)
 {
   std::shared_ptr<Source> src;

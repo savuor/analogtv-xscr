@@ -12,8 +12,8 @@ struct AppSettings
   cv::Size size = {640, 480};
   int fps = 30;
   Knobs knobs;
-  std::vector<std::string> sourceStrings;
-  std::vector<std::string> outputStrings;
+  std::vector<nlohmann::json> sources;
+  std::vector<nlohmann::json> outputs;
 
   struct ReceptionConfig
   {

@@ -15,6 +15,7 @@ struct Source
   { }
 
   static std::shared_ptr<Source> create(const atv::ParametricString& s);
+  static std::shared_ptr<Source> create(const nlohmann::json& j);
 
   virtual void update(AnalogInput& input, double time) = 0;
 

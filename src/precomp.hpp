@@ -26,6 +26,8 @@
 #include <thread>
 #include <algorithm>
 
+#include <nlohmann/json.hpp>
+
 // maybe one day this dependency will be removed
 #include <opencv2/core.hpp>
 

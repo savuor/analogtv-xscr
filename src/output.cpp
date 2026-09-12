@@ -73,6 +73,39 @@ void VideoOutput::send(const cv::Mat &m)
     writer.write(out);
 }
 
+std::shared_ptr<Output> Output::create(const nlohmann::json& j, cv::Size imgSize)
+{
+    if (j.is_string())
+    {
+        return create(ParametricString::parse(j.get<std::string>()), imgSize);
+    }
+
+    if (!j.is_object())
+    {
+        throw std::runtime_error("Invalid output JSON: expected object or string");
+    }
+
+    std::string type = j.value("type", "");
+
+    if (type == "highgui")
+    {
+        return std::make_shared<HighguiOutput>();
+    }
+    else if (type == "video")
+    {
+        std::string path = j.value("path", j.value("file", ""));
+        if (path.empty())
+        {
+            throw std::runtime_error("Video output missing 'path' property");
+        }
+        return std::make_shared<VideoOutput>(path, imgSize);
+    }
+    else
+    {
+        throw std::runtime_error("Unknown output type in JSON: " + type);
+    }
+}
+
 std::shared_ptr<Output> Output::create(const ParametricString& s, cv::Size imgSize)
 {
     if (!s.className.empty())

@@ -54,7 +54,7 @@ AppSettings loadSettings(const std::string& filePath)
   {
     for (const auto& src : j["sources"])
     {
-      s.sourceStrings.push_back(src.get<std::string>());
+      s.sources.push_back(src);
     }
   }
 
@@ -62,7 +62,7 @@ AppSettings loadSettings(const std::string& filePath)
   {
     for (const auto& out : j["outputs"])
     {
-      s.outputStrings.push_back(out.get<std::string>());
+      s.outputs.push_back(out);
     }
   }
 

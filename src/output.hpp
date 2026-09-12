@@ -19,6 +19,7 @@ struct Output
  * @return Output object
  */
   static std::shared_ptr<Output> create(const atv::ParametricString& s, cv::Size imgSize);
+  static std::shared_ptr<Output> create(const nlohmann::json& j, cv::Size imgSize);
 
   virtual void send(const cv::Mat& m) = 0;
 
