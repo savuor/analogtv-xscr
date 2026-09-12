@@ -2,7 +2,6 @@
 
 #include "control.hpp"
 #include "random_control.hpp"
-//#include "gui_control.hpp"
 
 namespace atv
 {
