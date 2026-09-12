@@ -4,8 +4,10 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 
 #include <QtWidgets/QCheckBox>
+#include <QtWidgets/QComboBox>
 #include <QtWidgets/QDial>
 #include <QtWidgets/QDoubleSpinBox>
 #include <QtWidgets/QGridLayout>
@@ -15,6 +17,7 @@
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QSlider>
 #include <QtWidgets/QSpinBox>
+#include <QtWidgets/QTabWidget>
 #include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QWidget>
 
@@ -197,7 +200,9 @@ private:
 };
 
 
-ControlWindow::ControlWindow(atv::Knobs& knobs, QWidget* parent)
+ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
+                             const std::vector<std::shared_ptr<atv::Source>>& allSources,
+                             QWidget* parent)
   : QMainWindow(parent)
 {
   setWindowTitle("AnalogTV Control");
@@ -308,6 +313,85 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, QWidget* parent)
   miscLayout->addLayout(cyclesLayout);
 
   layout->addWidget(miscGroupBox);
+
+  QGroupBox* channelGroupBox = new QGroupBox("Channel", centralWidget);
+  QVBoxLayout* channelLayout = new QVBoxLayout(channelGroupBox);
+
+  QGridLayout* channelGrid = new QGridLayout();
+  channelGrid->setColumnStretch(1, 1); // slider column fills remaining space, keeping all sliders the same width
+  channelLayout->addLayout(channelGrid);
+
+  // generic slider knob, for objects (ChanSetting/AnalogReception) other than Knobs
+  auto addRangedSliderKnob = [this](const QString& title, double currentValue, double minV, double maxV,
+                                     QWidget* groupBox, QGridLayout* grid, int row, std::function<void(double)> onChange)
+  {
+    SliderSpinboxKnob* knob = new SliderSpinboxKnob(title, groupBox, grid, row);
+    knob->setRange(minV, maxV);
+    knob->setValue(currentValue);
+    connect(knob, &SliderSpinboxKnob::valueChanged, onChange);
+  };
+
+  auto [noiseMin, noiseMax] = channel.getRange("noise_level");
+  addRangedSliderKnob("Noise Level", channel.noise_level, noiseMin, noiseMax, channelGroupBox, channelGrid, 0,
+    [this](double value)
+    {
+      emit chanParamChanged("noise_level", value);
+    });
+
+  QTabWidget* receptionsTabs = new QTabWidget(channelGroupBox);
+  channelLayout->addWidget(receptionsTabs);
+
+  for (size_t i = 0; i < channel.receptions.size(); ++i)
+  {
+    atv::AnalogReception& rec = channel.receptions[i];
+    int index = static_cast<int>(i);
+
+    QWidget* tab = new QWidget();
+    QVBoxLayout* tabLayout = new QVBoxLayout(tab);
+
+    QComboBox* sourceCombo = new QComboBox(tab);
+    int currentSourceIdx = -1;
+    for (size_t s = 0; s < allSources.size(); ++s)
+    {
+      sourceCombo->addItem(QString::fromStdString(allSources[s]->getName()));
+      if (allSources[s] == channel.sources[i]) currentSourceIdx = static_cast<int>(s);
+    }
+    sourceCombo->setCurrentIndex(currentSourceIdx);
+    connect(sourceCombo, &QComboBox::currentIndexChanged, [this, index](int sourceIdx)
+    {
+      emit receptionSourceChanged(index, sourceIdx);
+    });
+    tabLayout->addWidget(sourceCombo);
+
+    QGridLayout* recGrid = new QGridLayout();
+    recGrid->setColumnStretch(1, 1);
+    tabLayout->addLayout(recGrid);
+
+    auto addReceptionSlider = [this, addRangedSliderKnob, tab, recGrid, index](const QString& title, const std::string& paramName,
+                                                                                double currentValue, double minV, double maxV, int row)
+    {
+      addRangedSliderKnob(title, currentValue, minV, maxV, tab, recGrid, row, [this, index, paramName](double value)
+      {
+        emit receptionParamChanged(index, QString::fromStdString(paramName), value);
+      });
+    };
+
+    auto [levelMin, levelMax] = rec.getRange("level");
+    addReceptionSlider("Level", "level", rec.level, levelMin, levelMax, 0);
+
+    auto [multipathMin, multipathMax] = rec.getRange("multipath");
+    addReceptionSlider("Multipath", "multipath", rec.multipath, multipathMin, multipathMax, 1);
+
+    auto [ofsMin, ofsMax] = rec.getRange("ofs");
+    addReceptionSlider("Offset", "ofs", rec.ofs, ofsMin, ofsMax, 2);
+
+    auto [freqMin, freqMax] = rec.getRange("freqerr");
+    addReceptionSlider("Frequency Error", "freqerr", rec.freqerr, freqMin, freqMax, 3);
+
+    receptionsTabs->addTab(tab, QString("Reception %1").arg(index));
+  }
+
+  layout->addWidget(channelGroupBox);
 }
 
 void ControlWindow::closeEvent(QCloseEvent* event)

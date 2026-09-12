@@ -105,8 +105,11 @@ int main(int argc, char** argv)
   // Create TV
   atv::SetTopBox tv(seed, outSize.width, outSize.height);
 
+  int currentChannel = 0;
+  atv::ChanSetting& channel = channels[currentChannel];
+
   atv::Knobs knobs = settings.knobs;
-  atv::ControlWindow window(knobs);
+  atv::ControlWindow window(knobs, channel, sources);
   window.show();
 
   QObject::connect(&window, &atv::ControlWindow::knobChanged,
@@ -115,7 +118,24 @@ int main(int argc, char** argv)
       knobs.setValue(name.toStdString(), value);
     });
 
-  int currentChannel = 0;
+  QObject::connect(&window, &atv::ControlWindow::chanParamChanged,
+    [&channel](const QString& name, double value)
+    {
+      channel.setValue(name.toStdString(), value);
+    });
+
+  QObject::connect(&window, &atv::ControlWindow::receptionParamChanged,
+    [&channel](int index, const QString& name, double value)
+    {
+      channel.receptions.at(index).setValue(name.toStdString(), value);
+    });
+
+  QObject::connect(&window, &atv::ControlWindow::receptionSourceChanged,
+    [&channel, &sources](int index, int sourceIndex)
+    {
+      channel.sources.at(index) = sources.at(sourceIndex);
+    });
+
   int frameCounter = 0;
 
   bool isOn = false; // TV is off by default
@@ -200,15 +220,14 @@ int main(int argc, char** argv)
 
     tv.setKnobs(knobs);
 
-    atv::ChanSetting& curChannel_s = channels[currentChannel];
-    for (size_t i = 0; i < curChannel_s.receptions.size(); i++)
+    for (size_t i = 0; i < channel.receptions.size(); i++)
     {
-      atv::AnalogReception& rec = curChannel_s.receptions[i];
-      curChannel_s.sources[i]->update(rec.input, curTime);
+      atv::AnalogReception& rec = channel.receptions[i];
+      channel.sources[i]->update(rec.input, curTime);
       rec.update(rng);
     }
 
-    cv::Mat4b outBuffer = tv.draw(curChannel_s.noise_level, false, curChannel_s.receptions);
+    cv::Mat4b outBuffer = tv.draw(channel.noise_level, false, channel.receptions);
 
     for (const auto& o : outputs)
     {
