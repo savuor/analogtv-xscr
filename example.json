@@ -40,7 +40,8 @@
     ],
     "channels": [
         { "noise_level": 0.04, "receptions": [{ "source": 0, "level": 0.3 }] },
-        { "noise_level": 0.02, "receptions": [{ "source": 1, "level": 0.5 }] },
+        { "noise_level": 0.22, "receptions": [{ "source": 1, "level": 0.5, "multipath": 1.0 },
+                                              { "source": 2, "level": 0.2, "multipath": 1.0, "ofs": 125000.0, "freqerr": -0.18 }] },
         { "noise_level": 0.03, "receptions": [{ "source": 2, "level": 0.4 }] },
         { "noise_level": 0.01, "receptions": [{ "source": 3, "level": 0.6 }] }
     ]
