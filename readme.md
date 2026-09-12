@@ -7,27 +7,33 @@ The original code is written by [Trevor Blackwell](https://tlb.org/), [Jamie Zaw
 
 It imitates old TV so well that I always wanted to have this as a filter.
 
-OpenCV is used just for video I/O, image loading and memory management.
-Qt6 will be used for GUI (or will not).
+OpenCV is used for video I/O, image loading and memory management.
+Qt6 is used for GUI.
+nlohmann_json is used for JSON loading.
 
 ### How to build
-* Get OpenCV, Qt6 and CMake
-  - Qt6 is not used yet; will be added later (or not)
+* Get OpenCV 5, Qt6, nlohmann_json and CMake
 * Run CMake with the flags:
-  - `-DOpenCV_DIR=<path_to_OpenCV_installation>`
+  - `-DOpenCV_DIR=<path_to_OpenCV_installation>/lib/cmake/opencv5`
+  - `-DQt6_DIR=<path_to_Qt_installation>/<version>/gcc_64/lib/cmake/Qt6`,
+  - `-Dnlohmann_json_DIR=<path_to_nlohmann_json_installation>/share/cmake/nlohmann_json/`
 * Build it
 
 ### How to run
-* Provide several signal sources, several outputs (they will get the same frames) and some other parameters
-* Example:
+* Find several videos, images or cameras as signal sources
+* Provide inputs, outputs and other parameters in command line like this:
   ```
   analogtv-cli --control :random:duration=60:powerup --size 1280 1024 --in image.png :bars:logo.png :cam:0 sintel.avi --out video.mp4 :highgui
+  ```
+* Every output gets the same video frames, can be used to write video and control it with GUI
+* Alternatively, GUI with prepared JSON settings can be used:
+  ```
+  analogtv-gui example.json
   ```
 * For more details, see command line help
 
 ### TODO
 * keep desired FPS
-* make some kind of GUI to switch channels and rotate knobs
 * transform this code to a platform-independent shader-like filter
 
 ### Copyright notice
