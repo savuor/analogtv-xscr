@@ -1,12 +1,12 @@
 #pragma once
 
+#include "precomp.hpp"
+
 #include "analogtv.hpp"
 #include "control.hpp"
 #include "source.hpp"
 
 #include <QtWidgets/QMainWindow>
-
-#include <functional>
 
 class QGroupBox;
 class QVBoxLayout;

@@ -17,11 +17,7 @@
 #include "output.hpp"
 #include "control.hpp"
 
-#include <chrono>
-
 #include <opencv2/core.hpp>
-
-//#include "wx/wx.h"
 
 struct Params
 {

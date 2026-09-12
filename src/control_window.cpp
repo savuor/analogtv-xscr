@@ -2,10 +2,6 @@
 
 #include "control_window.hpp"
 
-#include <algorithm>
-#include <cmath>
-#include <functional>
-
 #include <QtWidgets/QCheckBox>
 #include <QtWidgets/QComboBox>
 #include <QtWidgets/QDial>

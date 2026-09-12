@@ -8,11 +8,7 @@
 #include "json_settings.hpp"
 #include "control_window.hpp"
 
-#include <chrono>
-#include <thread>
-
 #include <QtWidgets/QApplication>
-
 
 static cv::Size getBestSize(const std::vector<std::shared_ptr<atv::Source>>& sources, cv::Size size)
 {
