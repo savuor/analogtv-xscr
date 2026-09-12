@@ -200,6 +200,22 @@ private:
 };
 
 
+// makes a QGroupBox checkable and collapses/expands its contents (but keeps the title bar) on toggle
+static void makeCollapsible(QGroupBox* box)
+{
+  box->setCheckable(true);
+  box->setChecked(true);
+  QObject::connect(box, &QGroupBox::toggled, [box](bool expanded)
+  {
+    for (QObject* child : box->children())
+    {
+      if (QWidget* widget = qobject_cast<QWidget*>(child))
+        widget->setVisible(expanded);
+    }
+  });
+}
+
+
 ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
                              const std::vector<std::shared_ptr<atv::Source>>& allSources,
                              QWidget* parent)
@@ -226,6 +242,7 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
   });
 
   QGroupBox* colorGroupBox = new QGroupBox("Color", centralWidget);
+  makeCollapsible(colorGroupBox);
   QVBoxLayout* colorLayout = new QVBoxLayout(colorGroupBox);
 
   QTintWidget* tintWidget = new QTintWidget(colorGroupBox);
@@ -260,6 +277,7 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
   layout->addWidget(colorGroupBox);
 
   QGroupBox* geometryGroupBox = new QGroupBox("Geometry", centralWidget);
+  makeCollapsible(geometryGroupBox);
   QVBoxLayout* geometryLayout = new QVBoxLayout(geometryGroupBox);
 
   QGridLayout* geometryGrid = new QGridLayout();
@@ -274,6 +292,7 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
   layout->addWidget(geometryGroupBox);
 
   QGroupBox* miscGroupBox = new QGroupBox("Miscelaneous", centralWidget);
+  makeCollapsible(miscGroupBox);
   QVBoxLayout* miscLayout = new QVBoxLayout(miscGroupBox);
 
   QGridLayout* miscGrid = new QGridLayout();
@@ -315,6 +334,7 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
   layout->addWidget(miscGroupBox);
 
   QGroupBox* channelGroupBox = new QGroupBox("Channel", centralWidget);
+  makeCollapsible(channelGroupBox);
   QVBoxLayout* channelLayout = new QVBoxLayout(channelGroupBox);
 
   QGridLayout* channelGrid = new QGridLayout();
