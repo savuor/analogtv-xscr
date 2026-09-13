@@ -5,7 +5,7 @@
     "fps": 30,
     "startChannel": 0,
     "knobs": {
-        "tint": 5.0,
+        "tint": 185.0,
         "color": 0.7,
         "brightness": 0.02,
         "contrast": 1.5,
@@ -21,14 +21,15 @@
         "channelChangeCycles": 200000
     },
     "sources": [
-        { "type": "video", "path": "/home/savuor/Videos/smile_1tv_92.mp4" },
-        { "type": "bars", "logo": "/home/savuor/Pictures/ort.png" },
+        { "type": "video", "path": "/home/savuor/Videos/soviet_synths_ad_1984.mkv" },
+        { "type": "bars", "logo": "/home/savuor/Pictures/Emojione_1F602.svg.png" },
         { "type": "image", "path": "/home/savuor/Pictures/90s/photo_2023-03-18_00-36-37.jpg", "timestamp": true },
         { "type": "camera", "id": 0, "timestamp": true }
     ],
     "commented_out_sources": [
         { "type": "NOT_SUPPORTED_slideshow", "glob": "/home/savuor/Pictures/90s/*", "delay": 5000, "timestamp": true },
         { "type": "video", "path": "/home/savuor/Videos/disney_ort.mp4"},
+        { "type": "bars", "logo": "/home/savuor/Pictures/ort.png" },
         { "type": "video", "path": "/home/savuor/Videos/koroleva_tulips.mp4"},
         { "type": "video", "path": "/home/savuor/Videos/smile_1tv_92.mp4"},
         { "type": "bars", "logo": "/home/savuor/code/xscreensaver/hacks/images/amiga.png"}
@@ -38,7 +39,8 @@
     ],
     "commented_out_outputs": [
         { "type": "highgui" },
-        { "type": "video", "path": "/home/savuor/Videos/90s.mp4" }
+        { "type": "video", "path": "/home/savuor/Videos/90s.mp4" },
+        { "type": "imageList", "path": "/home/savuor/Videos/frames/f%04d.jpg" }
     ],
     "channels": [
         { "noise_level": 0.04, "receptions": [{ "source": 0, "level": 0.3 }] },
