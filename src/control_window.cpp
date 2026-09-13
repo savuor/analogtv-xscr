@@ -18,23 +18,8 @@
 #include <QtWidgets/QWidget>
 
 #include <QtGui/QCloseEvent>
-
+#include <QtCore/qglobal.h>
 #include <QtCore/qmetatype.h>
-#include <QtCore/qtmochelpers.h>
-#include <QtCore/qxptype_traits.h>
-
-#if !defined(Q_MOC_OUTPUT_REVISION)
-#error "The header file doesn't include <QObject>."
-#elif Q_MOC_OUTPUT_REVISION != 69
-#error "This file was generated using the moc from 6.9.1. It"
-#error "cannot be used with the include files from this version of Qt."
-#error "(The moc has changed too much.)"
-#endif
-
-#ifndef Q_CONSTINIT
-#define Q_CONSTINIT
-#endif
-
 
 namespace atv
 {
@@ -302,10 +287,17 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
   {
     QCheckBox* checkBox = new QCheckBox(title, miscGroupBox);
     checkBox->setChecked(currentValue);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
     connect(checkBox, &QCheckBox::checkStateChanged, [this, paramName](Qt::CheckState state)
     {
       emit knobChanged(QString::fromStdString(paramName), state == Qt::Checked ? 1.0 : 0.0);
     });
+#else
+    connect(checkBox, &QCheckBox::stateChanged, [this, paramName](int state)
+    {
+      emit knobChanged(QString::fromStdString(paramName), state == Qt::Checked ? 1.0 : 0.0);
+    });
+#endif
     miscLayout->addWidget(checkBox);
   };
 

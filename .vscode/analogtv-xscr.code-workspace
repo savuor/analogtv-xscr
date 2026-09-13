@@ -13,6 +13,7 @@
 			//"OpenCV_DIR" : "/home/savuor/builds/ocv/5.x/Debug/install/lib/cmake/opencv5",
 			"OpenCV_DIR" : "/home/savuor/builds/ocv/5.x/Release/install/lib/cmake/opencv5",
 			"Qt6_DIR" : "/home/savuor/installs/qt/6.9.1/gcc_64/lib/cmake/Qt6",
+			//"Qt5_DIR": "/usr/lib/x86_64-linux-gnu/cmake/Qt5",
 			"nlohmann_json_DIR" : "/home/savuor/builds/json/install/share/cmake/nlohmann_json/"
 		},
 		"files.associations": {

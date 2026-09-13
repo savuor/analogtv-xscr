@@ -12,7 +12,18 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS} -O2")
 
 find_package(OpenCV)
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets)
+find_package(Qt6 COMPONENTS Core Widgets QUIET)
+if(Qt6_FOUND)
+    message(STATUS "Found Qt6: ${Qt6Core_VERSION}")
+    set(QT_LIBRARIES Qt6::Core Qt6::Widgets)
+    set(QT_INCLUDE_DIRS ${Qt6Core_INCLUDE_DIRS} ${Qt6Widgets_INCLUDE_DIRS})
+else()
+    find_package(Qt5 REQUIRED COMPONENTS Core Widgets)
+    message(STATUS "Found Qt5: ${Qt5Core_VERSION}")
+    set(QT_LIBRARIES Qt5::Core Qt5::Widgets)
+    set(QT_INCLUDE_DIRS ${Qt5Core_INCLUDE_DIRS} ${Qt5Widgets_INCLUDE_DIRS})
+endif()
+
 find_package(nlohmann_json REQUIRED)
 
 set(CMAKE_AUTOMOC ON)
@@ -22,8 +33,7 @@ set(CMAKE_AUTOMOC ON)
 include_directories(
     "./src"
     ${OpenCV_INCLUDE_DIRS}
-    ${Qt6Core_INCLUDE_DIRS}
-    ${Qt6Widgets_INCLUDE_DIRS}
+    ${QT_INCLUDE_DIRS}
 )
 
 add_executable(analogtv-cli
@@ -51,4 +61,4 @@ add_executable(analogtv-gui
     "./src/utils.cpp"
 )
 
-target_link_libraries(analogtv-gui PRIVATE ${OpenCV_LIBS} Qt6::Core Qt6::Widgets nlohmann_json::nlohmann_json)
+target_link_libraries(analogtv-gui PRIVATE ${OpenCV_LIBS} ${QT_LIBRARIES} nlohmann_json::nlohmann_json)

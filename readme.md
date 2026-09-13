@@ -8,14 +8,14 @@ The original code is written by [Trevor Blackwell](https://tlb.org/), [Jamie Zaw
 It imitates old TV so well that I always wanted to have this as a filter.
 
 OpenCV is used for video I/O, image loading and memory management.
-Qt6 is used for GUI.
+Qt6 or Qt5 is used for GUI.
 nlohmann_json is used for JSON loading.
 
 ### How to build
-* Get OpenCV 5, Qt6, nlohmann_json and CMake
+* Get OpenCV 5, Qt6 or Qt5, nlohmann_json and CMake
 * Run CMake with the flags:
   - `-DOpenCV_DIR=<path_to_OpenCV_installation>/lib/cmake/opencv5`
-  - `-DQt6_DIR=<path_to_Qt_installation>/<version>/gcc_64/lib/cmake/Qt6`,
+  - `-DQt6_DIR=<path_to_Qt_installation>/<version>/gcc_64/lib/cmake/Qt6` or `-DQt5_DIR=<path_to_Qt_installation>/lib/cmake/Qt5`,
   - `-Dnlohmann_json_DIR=<path_to_nlohmann_json_installation>/share/cmake/nlohmann_json/`
 * Build it
 
