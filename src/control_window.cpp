@@ -337,7 +337,7 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
   const int channelButtonColumns = 4;
   for (int i = 0; i < numChannels; ++i)
   {
-    QPushButton* channelButton = new QPushButton(QString::number(i + 1), channelsGroupBox);
+    QPushButton* channelButton = new QPushButton(QString::number(i), channelsGroupBox);
     connect(channelButton, &QPushButton::clicked, [this, i]()
     {
       emit channelSwitchRequested(i);
