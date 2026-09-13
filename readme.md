@@ -7,6 +7,35 @@ The original code is written by [Trevor Blackwell](https://tlb.org/), [Jamie Zaw
 
 It imitates old TV so well that I always wanted to have this as a filter.
 
+### Some creepy examples
+
+<video controls width="320">
+  <source src="misc/output1.webm" type="video/webm">
+</video>
+
+<video controls width="320">
+  <source src="misc/output2.webm" type="video/webm">
+</video>
+
+<video controls width="320">
+  <source src="misc/output10.webm" type="video/webm">
+</video>
+
+<video controls width="320">
+  <source src="misc/output13.webm" type="video/webm">
+</video>
+
+<video controls width="320">
+  <source src="misc/output14.webm" type="video/webm">
+</video>
+
+<video controls width="320">
+  <source src="misc/output15.webm" type="video/webm">
+</video>
+
+
+### Dependencies
+
 OpenCV is used for video I/O, image loading and memory management.
 Qt6 or Qt5 is used for GUI.
 nlohmann_json is used for JSON loading.
