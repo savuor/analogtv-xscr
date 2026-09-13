@@ -101,7 +101,11 @@ int main(int argc, char** argv)
   // Create TV
   atv::SetTopBox tv(seed, outSize.width, outSize.height);
 
-  int currentChannel = 0;
+  int currentChannel = settings.startChannel;
+  if (currentChannel < 0 || currentChannel >= static_cast<int>(channels.size()))
+  {
+    currentChannel = 0;
+  }
   atv::ChanSetting* currentChannelPtr = &channels[currentChannel];
 
   atv::Knobs knobs = settings.knobs;
