@@ -44,6 +44,17 @@ struct VideoOutput : Output
   cv::VideoWriter writer;
 };
 
+struct ImageListOutput : Output
+{
+  ImageListOutput(const std::string& pattern, cv::Size imgSize);
+
+  void send(const cv::Mat& m) override;
+
+  ~ImageListOutput() { }
+
+  cv::VideoWriter writer;
+};
+
 
 HighguiOutput::HighguiOutput()
 {
@@ -85,6 +96,25 @@ void VideoOutput::send(const cv::Mat &m)
     writer.write(out);
 }
 
+ImageListOutput::ImageListOutput(const std::string &pattern, cv::Size imgSize)
+{
+    if (!writer.open(pattern, 0, /* fps */ 30.0, imgSize))
+    {
+        throw std::runtime_error("Failed to open VideoWriter for image sequence: " + pattern);
+    }
+    Log::write(2, "writing image sequence to " + pattern + " " + std::to_string(imgSize.width) + "x" + std::to_string(imgSize.height));
+}
+
+void ImageListOutput::send(const cv::Mat &m)
+{
+    cv::Mat out = m;
+    if (m.channels() == 4)
+    {
+        cvtColor(m, out, cv::COLOR_BGRA2BGR);
+    }
+    writer.write(out);
+}
+
 std::shared_ptr<Output> Output::create(const nlohmann::json& j, cv::Size imgSize)
 {
     if (j.is_string())
@@ -102,6 +132,15 @@ std::shared_ptr<Output> Output::create(const nlohmann::json& j, cv::Size imgSize
     if (type == "highgui")
     {
         return std::make_shared<HighguiOutput>();
+    }
+    else if (type == "imageList")
+    {
+        std::string path = j.value("path", j.value("pattern", j.value("file", "")));
+        if (path.empty())
+        {
+            throw std::runtime_error("Image list output missing 'path' or 'pattern' property");
+        }
+        return std::make_shared<ImageListOutput>(path, imgSize);
     }
     else if (type == "video")
     {
@@ -131,6 +170,15 @@ std::shared_ptr<Output> Output::create(const ParametricString& s, cv::Size imgSi
         if (s.className == "highgui")
         {
             return std::make_shared<HighguiOutput>();
+        }
+        else if (s.className == "imageList")
+        {
+            std::string pattern = s.varArgs.empty() ? "" : s.varArgs[0];
+            if (pattern.empty())
+            {
+                throw std::runtime_error("Image list output missing pattern");
+            }
+            return std::make_shared<ImageListOutput>(pattern, imgSize);
         }
         else
         {
