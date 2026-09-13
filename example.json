@@ -20,8 +20,8 @@
         "channelChangeCycles": 200000
     },
     "sources": [
-        { "type": "video", "path": "/home/savuor/Videos/smile_1tv_92.mp4", "timestamp": true },
-        { "type": "bars", "logo": "/home/savuor/Pictures/ort.png", "timestamp": true },
+        { "type": "video", "path": "/home/savuor/Videos/smile_1tv_92.mp4" },
+        { "type": "bars", "logo": "/home/savuor/Pictures/ort.png" },
         { "type": "image", "path": "/home/savuor/Pictures/90s/photo_2023-03-18_00-36-37.jpg", "timestamp": true },
         { "type": "camera", "id": 0, "timestamp": true }
     ],
