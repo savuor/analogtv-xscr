@@ -33,7 +33,10 @@ nlohmann_json is used for JSON loading.
 * For more details, see command line help
 
 ### TODO
-* keep desired FPS
+* keep desired FPS and resolve timing issues
+* resolve color issues: SMPTE bars do not correspond to pictures colors
+* use names for sources instead of numbers
+* drop extra params, do better resizing, refactor code, etc.
 * transform this code to a platform-independent shader-like filter
 
 ### Copyright notice
