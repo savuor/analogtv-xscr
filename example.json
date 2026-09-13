@@ -33,9 +33,10 @@
         { "type": "bars", "logo": "/home/savuor/code/xscreensaver/hacks/images/amiga.png"}
     ],
     "outputs": [
-        { "type": "highgui" }
+        { "type": "qt" }
     ],
     "commented_out_outputs": [
+        { "type": "highgui" },
         { "type": "video", "path": "/home/savuor/Videos/90s.mp4" }
     ],
     "channels": [

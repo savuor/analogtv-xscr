@@ -10,6 +10,18 @@
 namespace atv
 {
 
+// Custom output factory registry
+static std::map<std::string, std::pair<Output::JsonFactory, Output::ParametricFactory>>& getCustomFactories()
+{
+  static std::map<std::string, std::pair<Output::JsonFactory, Output::ParametricFactory>> factories;
+  return factories;
+}
+
+void Output::registerFactory(const std::string& type, JsonFactory jsonFactory, ParametricFactory paramFactory)
+{
+  getCustomFactories()[type] = {jsonFactory, paramFactory};
+}
+
 // Output classes
 
 struct HighguiOutput : Output
@@ -102,6 +114,12 @@ std::shared_ptr<Output> Output::create(const nlohmann::json& j, cv::Size imgSize
     }
     else
     {
+        auto& factories = getCustomFactories();
+        auto it = factories.find(type);
+        if (it != factories.end() && it->second.first)
+        {
+            return it->second.first(j, imgSize);
+        }
         throw std::runtime_error("Unknown output type in JSON: " + type);
     }
 }
@@ -116,6 +134,12 @@ std::shared_ptr<Output> Output::create(const ParametricString& s, cv::Size imgSi
         }
         else
         {
+            auto& factories = getCustomFactories();
+            auto it = factories.find(s.className);
+            if (it != factories.end() && it->second.second)
+            {
+                return it->second.second(s, imgSize);
+            }
             throw std::runtime_error("Unknown video output: " + s.className);
         }
     }

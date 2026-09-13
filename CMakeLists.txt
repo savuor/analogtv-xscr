@@ -37,12 +37,13 @@ add_executable(analogtv-cli
     "./src/random_control.cpp"
 )
 
-target_link_libraries(analogtv-cli PRIVATE ${OpenCV_LIBS})
+target_link_libraries(analogtv-cli PRIVATE ${OpenCV_LIBS} nlohmann_json::nlohmann_json)
 
 add_executable(analogtv-gui
     "./src/analogtv-gui.cpp"
     "./src/json_settings.cpp"
     "./src/control_window.cpp"
+    "./src/qt_output.cpp"
     "./src/source.cpp"
     "./src/output.cpp"
     "./src/analogtv.cpp"
