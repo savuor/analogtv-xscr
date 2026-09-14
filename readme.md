@@ -1,12 +1,13 @@
 # Analog TV emulator
 
 This repo contains a tool that imitates an old TV screen. NTSC standard is emulated, interlacing is not used.
-Still images, videos and realtime camera inputs are supported.
-Output can be done to video file, GUI window and image list simultaneously.
 
 It supports noise, broken synchronization, color and geometry distortions, multichannel interference and many more.
 
 It has a GUI tool to interactively rotate knobs and switch channels.
+
+Still images, videos and realtime camera inputs are supported.
+Output can be done to video file, GUI window and image list simultaneously.
 
 The software based on a tool called `analogtv-cli` from [XScreensaver](https://www.jwz.org/xscreensaver/) stripped to the minimum.
 The original code is written by [Trevor Blackwell](https://tlb.org/), [Jamie Zawinski](https://jwz.org/) and the team.
