@@ -9,9 +9,7 @@ It imitates old TV so well that I always wanted to have this as a filter.
 
 ### Some creepy examples
 
-<video controls width="320">
-  <source src="misc/output1.webm" type="video/webm">
-</video>
+![Power Up](misc/output1.webm)
 
 <video controls width="320">
   <source src="misc/output2.webm" type="video/webm">
