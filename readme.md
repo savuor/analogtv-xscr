@@ -1,11 +1,16 @@
 # Analog TV emulator
 
-This repo contains a tool that shows images or videos like they are on an old TV screen. NTSC standard is emulated, interlacing is not used.
+This repo contains a tool that imitates an old TV screen. NTSC standard is emulated, interlacing is not used.
+Still images, videos and realtime camera inputs are supported.
 
-It's based on a tool called `analogtv-cli` from [XScreensaver](https://www.jwz.org/xscreensaver/) stripped to the minimum.
+It supports noise, broken synchronization, color and geometry distortions, multichannel interference and many more.
+
+It has a GUI tool to interactively rotate knobs and switch channels.
+
+The software based on a tool called `analogtv-cli` from [XScreensaver](https://www.jwz.org/xscreensaver/) stripped to the minimum.
 The original code is written by [Trevor Blackwell](https://tlb.org/), [Jamie Zawinski](https://jwz.org/) and the team.
 
-It imitates old TV so well that I always wanted to have this as a filter.
+It resembles a picture on an old TV set so well that I always wanted to have this as a filter.
 
 ### Some creepy examples
 
@@ -51,6 +56,7 @@ _Note: these videos were built using ffmpeg like this:_
 * resolve color issues: SMPTE bars do not correspond to pictures colors
 * use names for sources instead of numbers
 * drop extra params, do better resizing, refactor code, etc.
+* add more params from existing, like different number of scanlines, etc.
 * transform this code to a platform-independent shader-like filter
 
 ### Copyright notice
