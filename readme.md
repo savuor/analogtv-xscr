@@ -9,34 +9,19 @@ It imitates old TV so well that I always wanted to have this as a filter.
 
 ### Some creepy examples
 
-![Power Up](misc/output20.webp)
+![Power Up](misc/output20.webp) ![Detuned Switch](misc/output21.webp)
 
-<video controls width="320">
-  <source src="misc/output2.webm" type="video/webm">
-</video>
+![Noise Up Down](misc/output24.webp) ![Power Down](misc/output25.webp)
 
-<video controls width="320">
-  <source src="misc/output10.webm" type="video/webm">
-</video>
+_Note: these videos were built using ffmpeg like this:_
 
-<video controls width="320">
-  <source src="misc/output13.webm" type="video/webm">
-</video>
-
-<video controls width="320">
-  <source src="misc/output14.webm" type="video/webm">
-</video>
-
-<video controls width="320">
-  <source src="misc/output15.webm" type="video/webm">
-</video>
-
+```ffmpeg -start_number 410 -i frames/f%04d.jpg -vframes 230 -vf "scale=iw*0.5:ih*0.5" -loop 0 output22.webp```
 
 ### Dependencies
 
-OpenCV is used for video I/O, image loading and memory management.
-Qt6 or Qt5 is used for GUI.
-nlohmann_json is used for JSON loading.
+* OpenCV is used for video I/O, image loading and memory management. Version 5 checked, version 4 may work too.
+* Qt6 or Qt5 is used for GUI
+* [nlohmann_json](https://github.com/nlohmann/json) is used for JSON loading
 
 ### How to build
 * Get OpenCV 5, Qt6 or Qt5, nlohmann_json and CMake
@@ -48,16 +33,18 @@ nlohmann_json is used for JSON loading.
 
 ### How to run
 * Find several videos, images or cameras as signal sources
-* Provide inputs, outputs and other parameters in command line like this:
-  ```
-  analogtv-cli --control :random:duration=60:powerup --size 1280 1024 --in image.png :bars:logo.png :cam:0 sintel.avi --out video.mp4 :highgui
-  ```
-* Every output gets the same video frames, can be used to write video and control it with GUI
-* Alternatively, GUI with prepared JSON settings can be used:
+* Prepare JSON with settings and run GUI tool:
   ```
   analogtv-gui example.json
   ```
+* Broadcasting starts immediately at GUI tool run
+* Alternatively, you can run a CLI tool for video generating/display:
+  ```
+  analogtv-cli --control :random:duration=60:powerup --size 1280 1024 --in image.png :bars:logo.png :cam:0 sintel.avi --out video.mp4 :highgui
+  ```
 * For more details, see command line help
+* Every output gets the same video frames, can be used to write video and control it with GUI
+
 
 ### TODO
 * keep desired FPS and resolve timing issues
