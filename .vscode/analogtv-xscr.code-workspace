@@ -76,7 +76,7 @@
 				"request": "launch",
 				"program": "${command:cmake.buildDirectory}/analogtv-gui",
 				"preLaunchTask": "CMake: build",
-				"args": [ "${workspaceFolder}/example.json" ],
+				"args": [ "${workspaceFolder}/example_gui.json" ],
 				"stopAtEntry": false,
 				"cwd": "${fileDirname}",
 				"environment": [],
