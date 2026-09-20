@@ -16,7 +16,7 @@ constexpr double renderPowerUpDuration = 6.0;
 }
 
 RecordedControl::RecordedControl(const std::string& filePath)
-  : settings(), sequence(), knobs(), rng(), fps(30.0), frameCounter(0), sequenceIndex(0),
+  : settings(), sequence(), knobs(), fps(30.0), frameCounter(0), sequenceIndex(0),
     sequenceFrame(0), currentChannel(0), powerUpFrames(0), powerDownFrames(0),
     poweringUp(false), poweringDown(false), firstFrame(false), targetBrightness(0.0)
 {
@@ -62,10 +62,8 @@ RecordedControl::RecordedControl(const std::string& filePath)
   }
 }
 
-void RecordedControl::setRNG(uint64_t rngSeed)
-{
-  this->rng = cv::RNG(rngSeed);
-}
+void RecordedControl::setRNG(uint64_t /* rngSeed */)
+{ }
 
 void RecordedControl::applyKnobs(const nlohmann::json& values)
 {

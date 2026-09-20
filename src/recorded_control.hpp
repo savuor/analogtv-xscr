@@ -34,7 +34,6 @@ private:
   nlohmann::json settings;
   std::vector<SequenceEntry> sequence;
   Knobs knobs;
-  cv::RNG rng;
   double fps;
   int frameCounter;
   size_t sequenceIndex;
