@@ -3,6 +3,7 @@
     "seed": 1234,
     "size": [1024, 768],
     "fps": 30,
+    "autoOn": true,
     "startChannel": 0,
     "knobs": {
         "tint": 185.0,

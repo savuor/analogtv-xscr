@@ -23,7 +23,7 @@ class ControlWindow : public QMainWindow
 public:
   explicit ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
                           const std::vector<std::shared_ptr<atv::Source>>& sources,
-                          int numChannels, QWidget* parent = nullptr);
+                          int numChannels, bool autoOn = false, QWidget* parent = nullptr);
 
   // rebuilds the Channel group box (noise level + reception tabs) to reflect a newly selected channel
   void setChannel(atv::ChanSetting& channel);

@@ -39,6 +39,11 @@ AppSettings loadSettings(const std::string& filePath)
     s.fps = j["fps"].get<int>();
   }
 
+  if (j.contains("autoOn"))
+  {
+    s.autoOn = j["autoOn"].get<bool>();
+  }
+
   if (j.contains("startChannel"))
   {
     s.startChannel = j["startChannel"].get<int>();

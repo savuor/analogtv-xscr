@@ -12,6 +12,7 @@ struct AppSettings
   int seed = 0;
   cv::Size size = {640, 480};
   int fps = 30;
+  bool autoOn = false;
   int startChannel = 0;
   Knobs knobs;
   std::vector<nlohmann::json> sources;

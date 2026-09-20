@@ -199,7 +199,7 @@ static void makeCollapsible(QGroupBox* box)
 
 ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
                              const std::vector<std::shared_ptr<atv::Source>>& sources,
-                             int numChannels, QWidget* parent)
+                             int numChannels, bool autoOn, QWidget* parent)
   : QMainWindow(parent)
 {
   setWindowTitle("AnalogTV Control");
@@ -213,7 +213,6 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
   QPushButton* powerButton = new QPushButton("\342\217\274 OFF", centralWidget);
   powerButton->setFont(QFont({QString::fromUtf8("Noto Serif")}, 14));
   powerButton->setCheckable(true);
-  powerButton->setChecked(false); // default state is off
   layout->addWidget(powerButton);
 
   connect(powerButton, &QPushButton::toggled, [powerButton, this](bool isOn)
@@ -221,6 +220,8 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
     powerButton->setText(isOn ? "\342\217\274 ON" : "\342\217\274 OFF");
     emit powerToggled(isOn);
   });
+
+  powerButton->setChecked(autoOn);
 
   QGroupBox* colorGroupBox = new QGroupBox("Color", centralWidget);
   makeCollapsible(colorGroupBox);

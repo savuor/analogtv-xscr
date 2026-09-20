@@ -111,7 +111,7 @@ int main(int argc, char** argv)
   atv::ChanSetting* currentChannelPtr = &channels[currentChannel];
 
   atv::Knobs knobs = settings.knobs;
-  atv::ControlWindow window(knobs, *currentChannelPtr, sources, static_cast<int>(channels.size()));
+  atv::ControlWindow window(knobs, *currentChannelPtr, sources, static_cast<int>(channels.size()), settings.autoOn);
   window.show();
 
   QObject::connect(&window, &atv::ControlWindow::knobChanged,
@@ -155,8 +155,8 @@ int main(int argc, char** argv)
 
   int frameCounter = 0;
 
-  bool isOn = false; // TV is off by default
-  bool isPoweringUp = false;
+  bool isOn = settings.autoOn;
+  bool isPoweringUp = settings.autoOn;
   bool isPoweringDown = false;
   int transitionStartFrame = 0;
   double transitionStartBrightness = minBrightness;
