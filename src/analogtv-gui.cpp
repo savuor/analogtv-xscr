@@ -95,7 +95,7 @@ int main(int argc, char** argv)
   std::vector<std::shared_ptr<atv::Output>> outputs;
   for (const auto& s : settings.outputs)
   {
-    outputs.push_back(atv::Output::create(s, outSize));
+    outputs.push_back(atv::Output::create(s, outSize, settings.fps));
   }
 
   // Create TV

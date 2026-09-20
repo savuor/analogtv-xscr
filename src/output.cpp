@@ -35,7 +35,7 @@ struct HighguiOutput : Output
 
 struct VideoOutput : Output
 {
-  VideoOutput(const std::string& s, cv::Size imgSize);
+  VideoOutput(const std::string& s, cv::Size imgSize, double fps);
 
   virtual void send(const cv::Mat& m) override;
 
@@ -46,7 +46,7 @@ struct VideoOutput : Output
 
 struct ImageListOutput : Output
 {
-  ImageListOutput(const std::string& pattern, cv::Size imgSize);
+  ImageListOutput(const std::string& pattern, cv::Size imgSize, double fps);
 
   void send(const cv::Mat& m) override;
 
@@ -76,10 +76,10 @@ HighguiOutput::~HighguiOutput()
 // const enum AVCodecID video_codec = AV_CODEC_ID_H264;
 // const enum AVPixelFormat pix_fmt = AV_PIX_FMT_YUV420P;
 
-VideoOutput::VideoOutput(const std::string &s, cv::Size imgSize)
+VideoOutput::VideoOutput(const std::string &s, cv::Size imgSize, double fps)
 {
     // cv::VideoWriter::fourcc('M', 'J', 'P', 'G')
-    if (!writer.open(s, cv::VideoWriter::fourcc('m', 'p', '4', 'v'), /* fps */ 30, imgSize))
+    if (!writer.open(s, cv::VideoWriter::fourcc('m', 'p', '4', 'v'), fps, imgSize))
     {
         throw std::runtime_error("Failed to open VideoWriter");
     }
@@ -96,9 +96,9 @@ void VideoOutput::send(const cv::Mat &m)
     writer.write(out);
 }
 
-ImageListOutput::ImageListOutput(const std::string &pattern, cv::Size imgSize)
+ImageListOutput::ImageListOutput(const std::string &pattern, cv::Size imgSize, double fps)
 {
-    if (!writer.open(pattern, 0, /* fps */ 30.0, imgSize))
+    if (!writer.open(pattern, 0, fps, imgSize))
     {
         throw std::runtime_error("Failed to open VideoWriter for image sequence: " + pattern);
     }
@@ -115,11 +115,11 @@ void ImageListOutput::send(const cv::Mat &m)
     writer.write(out);
 }
 
-std::shared_ptr<Output> Output::create(const nlohmann::json& j, cv::Size imgSize)
+std::shared_ptr<Output> Output::create(const nlohmann::json& j, cv::Size imgSize, double fps)
 {
     if (j.is_string())
     {
-        return create(ParametricString::parse(j.get<std::string>()), imgSize);
+        return create(ParametricString::parse(j.get<std::string>()), imgSize, fps);
     }
 
     if (!j.is_object())
@@ -140,7 +140,7 @@ std::shared_ptr<Output> Output::create(const nlohmann::json& j, cv::Size imgSize
         {
             throw std::runtime_error("Image list output missing 'path' or 'pattern' property");
         }
-        return std::make_shared<ImageListOutput>(path, imgSize);
+        return std::make_shared<ImageListOutput>(path, imgSize, fps);
     }
     else if (type == "video")
     {
@@ -149,7 +149,7 @@ std::shared_ptr<Output> Output::create(const nlohmann::json& j, cv::Size imgSize
         {
             throw std::runtime_error("Video output missing 'path' property");
         }
-        return std::make_shared<VideoOutput>(path, imgSize);
+        return std::make_shared<VideoOutput>(path, imgSize, fps);
     }
     else
     {
@@ -163,7 +163,7 @@ std::shared_ptr<Output> Output::create(const nlohmann::json& j, cv::Size imgSize
     }
 }
 
-std::shared_ptr<Output> Output::create(const ParametricString& s, cv::Size imgSize)
+std::shared_ptr<Output> Output::create(const ParametricString& s, cv::Size imgSize, double fps)
 {
     if (!s.className.empty())
     {
@@ -178,7 +178,7 @@ std::shared_ptr<Output> Output::create(const ParametricString& s, cv::Size imgSi
             {
                 throw std::runtime_error("Image list output missing pattern");
             }
-            return std::make_shared<ImageListOutput>(pattern, imgSize);
+            return std::make_shared<ImageListOutput>(pattern, imgSize, fps);
         }
         else
         {
@@ -193,7 +193,7 @@ std::shared_ptr<Output> Output::create(const ParametricString& s, cv::Size imgSi
     }
     else
     {
-        return std::make_shared<VideoOutput>(s.varArgs[0], imgSize);
+            return std::make_shared<VideoOutput>(s.varArgs[0], imgSize, fps);
     }
 }
 

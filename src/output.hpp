@@ -18,8 +18,8 @@ struct Output
  * @param imgSize Image size to write
  * @return Output object
  */
-  static std::shared_ptr<Output> create(const atv::ParametricString& s, cv::Size imgSize);
-  static std::shared_ptr<Output> create(const nlohmann::json& j, cv::Size imgSize);
+  static std::shared_ptr<Output> create(const atv::ParametricString& s, cv::Size imgSize, double fps = 30.0);
+  static std::shared_ptr<Output> create(const nlohmann::json& j, cv::Size imgSize, double fps = 30.0);
 
   using JsonFactory = std::function<std::shared_ptr<Output>(const nlohmann::json&, cv::Size)>;
   using ParametricFactory = std::function<std::shared_ptr<Output>(const ParametricString&, cv::Size)>;

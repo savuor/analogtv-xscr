@@ -92,6 +92,8 @@ struct Control
 
   virtual double getTime() = 0;
 
+  virtual double getFps() const = 0;
+
   std::vector<ChanSetting> chanSettings;
 };
 

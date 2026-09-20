@@ -48,6 +48,11 @@ struct RandomControl : public Control
     return this->frameCounter / this->fps;
   }
 
+  double getFps() const override
+  {
+    return this->fps;
+  }
+
   Operation getNext() override;
 
   cv::RNG rng;

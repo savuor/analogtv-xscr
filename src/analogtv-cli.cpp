@@ -78,18 +78,18 @@ static void run(Params params)
     s->setSsavi(rng() % 20 == 0);
   }
 
-  std::vector<std::shared_ptr<atv::Output>> outputs;
-  for (const auto& s : params.outputs)
-  {
-    outputs.emplace_back(atv::Output::create(s, outSize));
-  }
-
-  atv::Log::write(2, "initialized " + std::to_string(outputs.size()) + " outputs");
-
   atv::SetTopBox tv(seed, outSize.width, outSize.height);
 
   std::shared_ptr<atv::Control> control = atv::Control::create(params.controlDescription);
   control->setRNG(seed);
+
+  std::vector<std::shared_ptr<atv::Output>> outputs;
+  for (const auto& s : params.outputs)
+  {
+    outputs.emplace_back(atv::Output::create(s, outSize, control->getFps()));
+  }
+
+  atv::Log::write(2, "initialized " + std::to_string(outputs.size()) + " outputs");
 
   control->createChannels(sources);
 
