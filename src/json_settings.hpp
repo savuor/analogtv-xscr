@@ -8,6 +8,7 @@ namespace atv
 
 struct AppSettings
 {
+  int verbosity = 0;
   int seed = 0;
   cv::Size size = {640, 480};
   int fps = 30;

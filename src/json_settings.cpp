@@ -18,6 +18,11 @@ AppSettings loadSettings(const std::string& filePath)
 
   AppSettings s;
 
+  if (j.contains("verbose"))
+  {
+    s.verbosity = j["verbose"].get<int>();
+  }
+
   if (j.contains("seed"))
   {
     s.seed = j["seed"].get<int>();

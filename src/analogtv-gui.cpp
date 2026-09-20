@@ -46,6 +46,7 @@ int main(int argc, char** argv)
   std::string jsonPath = argv[1];
 
   atv::AppSettings settings = atv::loadSettings(jsonPath);
+  atv::Log::setVerbosity(settings.verbosity);
 
   int seed = settings.seed;
   if (seed == 0)
