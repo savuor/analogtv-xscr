@@ -100,8 +100,6 @@ void RandomControl::rotateKnobsStart()
   this->knobs.powerup = 1000.0;
 
   //tv.hashnoise_rpm = 0;
-  //TODO: do we need both?
-  this->knobs.useHashNoise = 0;
   this->knobs.enableHashNoise = 1;
 
   this->knobs.horizontalDesync = this->rng.uniform(-5.0, 5.0);

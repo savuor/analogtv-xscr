@@ -303,7 +303,6 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
   };
 
   addCheckBox("Use Flutter Horizontal Desync", "useFlutterHorizontalDesync", knobs.useFlutterHorizontalDesync);
-  addCheckBox("Use Hash Noise",                "useHashNoise",               knobs.useHashNoise);
   addCheckBox("Enable Hash Noise",             "enableHashNoise",            knobs.enableHashNoise);
 
   QHBoxLayout* cyclesLayout = new QHBoxLayout();

@@ -1062,7 +1062,6 @@ void AnalogTV::set_knobs(const Knobs& knobs)
 
     this->powerup = knobs.powerup;
 
-    this->hashnoise_on     = knobs.useHashNoise;
     this->hashnoise_enable = knobs.enableHashNoise;
 
     this->horiz_desync  = knobs.horizontalDesync;
