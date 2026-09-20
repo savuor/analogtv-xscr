@@ -1,0 +1,88 @@
+{
+    "verbose": 2,
+    "seed": 1234,
+    "size": [1024, 768],
+    "fps": 30,
+    "sequence" :
+    [
+        {
+            "channel": 0,
+            "duration": 5000,
+            "knobs": {
+                "tint": 185.0,
+                "color": 0.7,
+                "brightness": 0.02,
+                "contrast": 1.5,
+                "height": 1.0,
+                "width": 1.0,
+                "squish": 0.0,
+                "powerup": 1000.0,
+                "useHashNoise": false,
+                "enableHashNoise": true,
+                "horizontalDesync": 0.0,
+                "squeezeBottom": 0.0,
+                "useFlutterHorizontalDesync": false,
+                "channelChangeCycles": 200000
+          }
+        },
+        {
+            "channel": 1,
+            "duration": 5000,
+            "noise_level": 0.1,
+            "receptions" :
+            [
+                { },
+                { "multipath": 1.0, "ofs": 125000.0, "freqerr": -0.18 }
+            ]
+
+        },
+        { "channel": 2, "duration": 5000 },
+        { "channel": 3, "duration": 5000 }
+    ],
+    "startChannel": 0,
+    "knobs": {
+        "tint": 185.0,
+        "color": 0.7,
+        "brightness": 0.02,
+        "contrast": 1.5,
+        "height": 1.0,
+        "width": 1.0,
+        "squish": 0.0,
+        "powerup": 1000.0,
+        "useHashNoise": false,
+        "enableHashNoise": true,
+        "horizontalDesync": 0.0,
+        "squeezeBottom": 0.0,
+        "useFlutterHorizontalDesync": false,
+        "channelChangeCycles": 200000
+    },
+    "sources": [
+        { "type": "video", "path": "/home/savuor/Videos/soviet_synths_ad_1984.mkv" },
+        { "type": "bars", "logo": "/home/savuor/Pictures/Emojione_1F602.svg.png" },
+        { "type": "image", "path": "/home/savuor/Pictures/90s/photo_2023-03-18_00-36-37.jpg", "timestamp": true },
+        { "type": "camera", "id": 0, "timestamp": true }
+    ],
+    "commented_out_sources": [
+        { "type": "NOT_SUPPORTED_slideshow", "glob": "/home/savuor/Pictures/90s/*", "delay": 5000, "timestamp": true },
+        { "type": "video", "path": "/home/savuor/Videos/disney_ort.mp4"},
+        { "type": "bars", "logo": "/home/savuor/Pictures/ort.png" },
+        { "type": "video", "path": "/home/savuor/Videos/koroleva_tulips.mp4"},
+        { "type": "video", "path": "/home/savuor/Videos/smile_1tv_92.mp4"},
+        { "type": "bars", "logo": "/home/savuor/code/xscreensaver/hacks/images/amiga.png"}
+    ],
+    "outputs": [
+        { "type": "qt" }
+    ],
+    "commented_out_outputs": [
+        { "type": "highgui" },
+        { "type": "video", "path": "/home/savuor/Videos/90s.mp4" },
+        { "type": "imageList", "path": "/home/savuor/Videos/frames/f%04d.jpg" }
+    ],
+    "channels": [
+        { "noise_level": 0.04, "receptions": [{ "source": 0, "level": 0.3 }] },
+        { "noise_level": 0.22, "receptions": [{ "source": 1, "level": 0.5, "multipath": 1.0 },
+                                              { "source": 2, "level": 0.2, "multipath": 1.0, "ofs": 125000.0, "freqerr": -0.18 }] },
+        { "noise_level": 0.03, "receptions": [{ "source": 2, "level": 0.4 }] },
+        { "noise_level": 0.01, "receptions": [{ "source": 3, "level": 0.6 }] }
+    ]
+}

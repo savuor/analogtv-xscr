@@ -45,6 +45,7 @@ add_executable(analogtv-cli
     "./src/utils.cpp"
     "./src/control.cpp"
     "./src/random_control.cpp"
+    "./src/recorded_control.cpp"
 )
 
 target_link_libraries(analogtv-cli PRIVATE ${OpenCV_LIBS} nlohmann_json::nlohmann_json)

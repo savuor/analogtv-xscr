@@ -2,6 +2,7 @@
 
 #include "control.hpp"
 #include "random_control.hpp"
+#include "recorded_control.hpp"
 
 namespace atv
 {
@@ -41,8 +42,11 @@ std::shared_ptr<Control> Control::create(const atv::ParametricString& desc)
   }
   else
   {
-    // TODO: load json with settings from desc.varArgs[0]
-    throw std::runtime_error("JSON loading is not implemented yet");
+    if (desc.varArgs.size() != 1)
+    {
+      throw std::runtime_error("Recorded control requires a JSON file path");
+    }
+    control = std::make_shared<RecordedControl>(desc.varArgs.front());
   }
 
   return control;

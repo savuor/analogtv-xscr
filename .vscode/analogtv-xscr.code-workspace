@@ -29,7 +29,7 @@
 		"version": "0.2.0",
 		"configurations": [
 			{
-				"name": "analogtv-cli",
+				"name": "CLI random",
 				"type": "cppdbg",
 				"request": "launch",
 				"program": "${command:cmake.buildDirectory}/analogtv-cli",
@@ -70,8 +70,48 @@
 					}
 				]
 			},
+						{
+				"name": "CLI recorded",
+				"type": "cppdbg",
+				"request": "launch",
+				"program": "${command:cmake.buildDirectory}/analogtv-cli",
+				"preLaunchTask": "CMake: build",
+				"args": [
+					"--verbose", "2",
+					"--control", "${workspaceFolder}/example_control.json",
+					"--size", "1280", "1024",
+					"--seed", "1234",
+					"--in", //"~/Pictures/90s/*",
+							//"/home/savuor/Videos/disney_ort.mp4",
+							//"/home/savuor/Videos/koroleva_tulips.mp4",
+							//"/home/savuor/Videos/smile_1tv_92.mp4",
+							//":bars:/home/savuor/code/xscreensaver/hacks/images/amiga.png",
+							":video:/home/savuor/Videos/smile_1tv_92.mp4:timestamp",
+							":bars:/home/savuor/Pictures/ort.png:timestamp",
+							":image:/home/savuor/Pictures/90s/photo_2023-03-18_00-36-37.jpg:timestamp",
+							":cam:0:timestamp",
+					"--out", /* "~/Videos/90s.mp4", */ ":highgui",
+						],
+				"stopAtEntry": false,
+				"cwd": "${fileDirname}",
+				"environment": [],
+				"externalConsole": false,
+				"MIMode": "gdb",
+				"setupCommands": [
+					{
+						"description": "Enable pretty-printing for gdb",
+						"text": "-enable-pretty-printing",
+						"ignoreFailures": true
+					},
+					{
+						"description": "Set Disassembly Flavor to Intel",
+						"text": "-gdb-set disassembly-flavor intel",
+						"ignoreFailures": true
+					}
+				]
+			},
 			{
-				"name": "analogtv-gui",
+				"name": "GUI",
 				"type": "cppdbg",
 				"request": "launch",
 				"program": "${command:cmake.buildDirectory}/analogtv-gui",
