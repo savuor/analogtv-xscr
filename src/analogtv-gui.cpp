@@ -26,6 +26,7 @@ static cv::Size getBestSize(const std::vector<std::shared_ptr<atv::Source>>& sou
 }
 
 
+const double POWERUP_RENDER_DURATION = 6.0;
 const double POWERUP_DURATION = 6.0;
 const double POWERDOWN_DURATION = 1.0;
 const double minBrightness = -1.5;
@@ -150,6 +151,8 @@ int main(int argc, char** argv)
       }
     });
 
+  // TODO: find out how power up knob is actually used and do corresponding refactoring
+
   int frameCounter = 0;
 
   bool isOn = false; // TV is off by default
@@ -206,17 +209,17 @@ int main(int argc, char** argv)
     if (isPoweringUp)
     {
       int elapsed = frameCounter - transitionStartFrame;
-      if (elapsed >= powerUpDurationFrames)
+      if (powerUpDurationFrames == 0 || elapsed >= powerUpDurationFrames)
       {
         isPoweringUp = false;
         knobs.brightness = originalBrightness;
-        knobs.powerup = POWERUP_DURATION;
+        knobs.powerup = POWERUP_RENDER_DURATION;
       }
       else
       {
         double rate = static_cast<double>(elapsed) / powerUpDurationFrames;
         knobs.brightness = transitionStartBrightness + (originalBrightness - transitionStartBrightness) * rate;
-        knobs.powerup = static_cast<double>(elapsed) / settings.fps;
+        knobs.powerup = POWERUP_RENDER_DURATION * rate;
       }
     }
     else if (isPoweringDown)
