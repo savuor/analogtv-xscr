@@ -222,7 +222,7 @@ AnalogTV::AnalogTV(int seed) :
 
   shrinkpulse(),
   crtload(),
-  intensity_values(),
+  gamma_correction_table(),
 
   tint_i(),
   tint_q(),
@@ -270,7 +270,7 @@ AnalogTV::AnalogTV(int seed) :
   {
     int intensity = pow(i / 256.0, 0.8) * 65535.0; /* gamma correction */
     intensity = std::min(intensity, 65535);
-    this->intensity_values[i] = intensity >> 8;
+    this->gamma_correction_table[i] = intensity >> 8;
   }
 }
 
@@ -839,8 +839,8 @@ void AnalogTV::blast_imagerow(const std::vector<cv::Vec3f>& rgbf, int ytop, int 
         cv::Vec4i rgb;
         for (int j = 0; j < 3; j++)
         {
-          //rgb[j] = this->intensity_values[std::clamp(int(val[j] * levelmult), 0, ANALOGTV_CV_MAX-1)];
-          rgb[j] = this->intensity_values[std::min(int(val[j] * levelmult), ANALOGTV_CV_MAX-1)];
+          //rgb[j] = this->gamma_correction_table[std::clamp(int(val[j] * levelmult), 0, ANALOGTV_CV_MAX-1)];
+          rgb[j] = this->gamma_correction_table[std::min(int(val[j] * levelmult), ANALOGTV_CV_MAX-1)];
         }
 
         cv::Vec4b v(rgb[2], rgb[1], rgb[0], 0);

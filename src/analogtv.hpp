@@ -295,7 +295,7 @@ private:
 
   float crtload[ANALOGTV_V];
 
-  unsigned int intensity_values[ANALOGTV_CV_MAX];
+  unsigned int gamma_correction_table[ANALOGTV_CV_MAX];
 
   float tint_i, tint_q;
 
