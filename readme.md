@@ -59,6 +59,7 @@ _Note: these videos were built using ffmpeg like this:_
 * use names for sources instead of numbers
 * drop extra params, do better resizing, refactor code, etc.
 * add more params from existing, like different number of scanlines, etc.
+* send shrink pulse of desired timing by button/command
 * transform this code to a platform-independent shader-like filter
 
 ### Copyright notice
