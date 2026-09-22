@@ -265,6 +265,8 @@ struct VideoSource : Source
     videoFileName(0),
     nCamera(0),
     lastGrabTime(0),
+    lastRetrieveTime(0),
+    lastRetrievedFrame(),
     fps(0),
     displayTimestamp(false)
   { }
@@ -301,6 +303,8 @@ struct VideoSource : Source
   int nCamera;
 
   double lastGrabTime;
+  double lastRetrieveTime;
+  cv::Mat lastRetrievedFrame;
   double fps;
   bool displayTimestamp;
 };
@@ -342,6 +346,8 @@ void VideoSource::init(bool showTimestamp)
                 std::to_string(frameSize.width) + "x" + std::to_string(frameSize.height) + " " + std::to_string(this->fps) + " FPS");
 
   this->lastGrabTime = -std::numeric_limits<double>::max();
+  this->lastRetrieveTime = -std::numeric_limits<double>::max();
+  this->lastRetrievedFrame = cv::Mat();
 
   this->displayTimestamp = showTimestamp;
 }
@@ -377,7 +383,19 @@ void VideoSource::update(AnalogInput& input, double time)
     this->lastGrabTime = time;
   }
 
-  bool ok = cap.retrieve(frame);
+  bool ok = false, retrieved = false;
+  if (time - this->lastRetrieveTime >= 1.0 / this->fps)
+  {
+    ok = cap.retrieve(frame);
+    retrieved = ok;
+    this->lastRetrieveTime = time;
+    this->lastRetrievedFrame = frame;
+  }
+  else
+  {
+    frame = this->lastRetrievedFrame;
+    ok = true;
+  }
 
   if (!ok || frame.empty())
   {
@@ -413,8 +431,11 @@ void VideoSource::update(AnalogInput& input, double time)
   input.finish_frame();
 
   // for next frame
-  cap.grab();
-  this->lastGrabTime = time;
+  if (retrieved)
+  {
+    cap.grab();
+    this->lastGrabTime = time;
+  }
 }
 
 
