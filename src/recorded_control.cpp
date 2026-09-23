@@ -9,16 +9,22 @@ namespace atv
 
 namespace
 {
-constexpr double powerUpDuration = 6.0;
-constexpr double powerDownDuration = 1.0;
+
 constexpr double minBrightness = -1.5;
-constexpr double renderPowerUpDuration = 6.0;
+
 }
 
 RecordedControl::RecordedControl(const std::string& filePath)
-  : settings(), sequence(), knobs(), fps(30.0), frameCounter(0), sequenceIndex(0),
-    sequenceFrame(0), currentChannel(0), powerUpFrames(0), powerDownFrames(0),
-    poweringUp(false), poweringDown(false), firstFrame(false), targetBrightness(0.0)
+  : settings(), sequence(), knobs(), fps(30.0), frameCounter(0),
+    sequenceIndex(0),
+    sequenceLastFrame(0),
+    powerUp(true),
+    turnOnFrame(0),
+    currentChannel(0),
+    powerDownFrames(0),
+    powerDownStartFrame(0),
+    targetBrightness(0.0),
+    lastFrame(0)
 {
   std::ifstream file(filePath);
   if (!file.is_open())
@@ -185,76 +191,62 @@ void RecordedControl::run()
   }
 
   this->applyKnobs(this->settings.value("knobs", nlohmann::json::object()));
-  this->targetBrightness = this->knobs.brightness;
-  this->knobs.brightness = minBrightness;
   this->knobs.timeSinceStart = 0.0;
 
   this->frameCounter = 0;
+  this->turnOnFrame = 0;
   this->sequenceIndex = 0;
-  this->sequenceFrame = 0;
   this->currentChannel = this->sequence.front().channel;
   this->applySequenceEntry(this->sequenceIndex);
-  this->targetBrightness = this->knobs.brightness;
-  this->knobs.brightness = minBrightness;
-  this->knobs.timeSinceStart = 0.0;
+  this->sequenceLastFrame = this->sequence.at(this->sequenceIndex).durationFrames;
 
-  this->powerUpFrames = static_cast<int>(powerUpDuration * this->fps);
-  this->powerDownFrames = static_cast<int>(powerDownDuration * this->fps);
-  this->poweringUp = true;
-  this->poweringDown = false;
-  this->firstFrame = true;
+  this->powerUp = this->settings.value("powerup", true);
+
+  this->powerDownFrames = static_cast<int>(this->settings.value("powerDownDuration", 0.0) * this->fps);
+  int fullLengthFrames = 0;
+  for (const auto& entry : this->sequence)
+  {
+    fullLengthFrames += entry.durationFrames;
+  }
+  this->powerDownStartFrame = fullLengthFrames;
+  this->lastFrame = fullLengthFrames + this->powerDownFrames;
 }
 
 Control::Operation RecordedControl::getNext()
 {
-  if (this->poweringUp)
+  Operation op;
+  op.type = Operation::Type::NONE;
+
+  if (this->frameCounter >= this->lastFrame)
   {
-    double rate = this->powerUpFrames == 0 ? 1.0 : static_cast<double>(this->frameCounter) / this->powerUpFrames;
-    rate = std::min(rate, 1.0);
-    this->knobs.brightness = minBrightness + (this->targetBrightness - minBrightness) * rate;
-    this->knobs.timeSinceStart = renderPowerUpDuration * rate;
-    if (this->frameCounter >= this->powerUpFrames)
-    {
-      this->poweringUp = false;
-      this->sequenceFrame = 0;
-      this->knobs.brightness = this->targetBrightness;
-      this->knobs.timeSinceStart = renderPowerUpDuration;
-    }
+    op.type = Operation::Type::QUIT;
   }
-  else if (this->poweringDown)
+  else if (this->frameCounter >= this->powerDownStartFrame)
   {
-    double rate = this->powerDownFrames == 0 ? 1.0 : static_cast<double>(this->frameCounter) / this->powerDownFrames;
+    // empty power down period is accounted in previous if block
+    double rate = static_cast<double>(this->frameCounter - this->powerDownStartFrame) / this->powerDownFrames;
     this->knobs.brightness = this->targetBrightness + (minBrightness - this->targetBrightness) * std::min(rate, 1.0);
-    if (this->frameCounter >= this->powerDownFrames)
-    {
-      return {Operation::Type::QUIT, this->currentChannel};
-    }
   }
-  else if (this->sequenceFrame >= this->sequence.at(this->sequenceIndex).durationFrames)
+  else if (this->frameCounter >= this->sequenceLastFrame)
   {
     ++this->sequenceIndex;
-    this->sequenceFrame = 0;
-    if (this->sequenceIndex >= this->sequence.size())
-    {
-      this->poweringDown = true;
-      this->frameCounter = 0;
-      return this->getNext();
-    }
+    this->sequenceLastFrame = this->frameCounter + this->sequence.at(this->sequenceIndex).durationFrames;
 
     int previousChannel = this->currentChannel;
     this->applySequenceEntry(this->sequenceIndex);
-    this->targetBrightness = this->knobs.brightness;
-    return {previousChannel == this->currentChannel ? Operation::Type::NONE : Operation::Type::SWITCH, this->currentChannel};
+    if (previousChannel != this->currentChannel)
+    {
+      op.type = Operation::Type::SWITCH;
+    }
   }
 
+  // to ignore powerup effects
+  knobs.timeSinceStart = this->powerUp ? static_cast<double>(this->frameCounter - this->turnOnFrame) / this->fps : 1000.0;
+
   ++this->frameCounter;
-  if (!this->poweringUp && !this->poweringDown)
-  {
-    ++this->sequenceFrame;
-  }
-  bool switchChannel = this->firstFrame;
-  this->firstFrame = false;
-  return {switchChannel ? Operation::Type::SWITCH : Operation::Type::NONE, this->currentChannel};
+
+  op.channel = this->currentChannel;
+  return op;
 }
 
 double RecordedControl::getTime()

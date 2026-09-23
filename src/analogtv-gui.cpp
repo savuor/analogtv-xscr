@@ -197,7 +197,7 @@ int main(int argc, char** argv)
     // real elapsed time, kept flowing regardless of the TV's power state
     double curTime = static_cast<double>(frameCounter) / settings.fps;
 
-    knobs.timeSinceStart = static_cast<double>(frameCounter - turnOnFrame) / settings.fps;;
+    knobs.timeSinceStart = static_cast<double>(frameCounter - turnOnFrame) / settings.fps;
     if (isPoweringDown)
     {
       int elapsed = frameCounter - transitionStartFrame;

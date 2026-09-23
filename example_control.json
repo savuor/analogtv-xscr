@@ -38,6 +38,8 @@
         { "channel": 3, "duration": 5000 }
     ],
     "startChannel": 0,
+    "powerup": false,
+    "powerDownDuration": 1.0,
     "knobs": {
         "tint": 185.0,
         "color": 0.7,

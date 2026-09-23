@@ -36,15 +36,19 @@ private:
   Knobs knobs;
   double fps;
   int frameCounter;
+
   size_t sequenceIndex;
-  int sequenceFrame;
+  int sequenceLastFrame;
+  bool powerUp;
+
+  // for the cases of turn OFF/ON events we will need this
+  int turnOnFrame;
   int currentChannel;
-  int powerUpFrames;
   int powerDownFrames;
-  bool poweringUp;
-  bool poweringDown;
-  bool firstFrame;
+  int powerDownStartFrame;
   double targetBrightness;
+
+  int lastFrame;
 };
 
 } // ::atv
