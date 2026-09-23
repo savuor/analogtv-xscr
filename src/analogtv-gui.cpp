@@ -25,9 +25,6 @@ static cv::Size getBestSize(const std::vector<std::shared_ptr<atv::Source>>& sou
   return outSize;
 }
 
-
-const double POWERUP_RENDER_DURATION = 6.0;
-const double POWERUP_DURATION = 6.0;
 const double POWERDOWN_DURATION = 1.0;
 const double minBrightness = -1.5;
 
@@ -153,36 +150,30 @@ int main(int argc, char** argv)
 
   // TODO: find out how power up knob is actually used and do corresponding refactoring
 
-  int frameCounter = 0;
+  int frameCounter = 0, turnOnFrame = 0;
 
   bool isOn = settings.autoOn;
-  bool isPoweringUp = settings.autoOn;
   bool isPoweringDown = false;
   int transitionStartFrame = 0;
   double transitionStartBrightness = minBrightness;
-  const double originalBrightness = knobs.brightness;
 
-  knobs.brightness = minBrightness;
-  knobs.powerup = 0.0;
-
-  const int powerUpDurationFrames = static_cast<int>(POWERUP_DURATION * settings.fps);
   const int powerDownDurationFrames = static_cast<int>(POWERDOWN_DURATION * settings.fps);
 
   QObject::connect(&window, &atv::ControlWindow::powerToggled, [&](bool on)
   {
+    // from off to on
     if (on && !isOn)
     {
       isOn = true;
-      isPoweringUp = true;
       isPoweringDown = false;
-      transitionStartFrame = frameCounter;
-      transitionStartBrightness = knobs.brightness;
+      turnOnFrame = frameCounter;
+      knobs.brightness = transitionStartBrightness;
     }
+    // vice versa: from on to off
     else if (!on && isOn)
     {
       isOn = false;
       isPoweringDown = true;
-      isPoweringUp = false;
       transitionStartFrame = frameCounter;
       transitionStartBrightness = knobs.brightness;
     }
@@ -206,23 +197,8 @@ int main(int argc, char** argv)
     // real elapsed time, kept flowing regardless of the TV's power state
     double curTime = static_cast<double>(frameCounter) / settings.fps;
 
-    if (isPoweringUp)
-    {
-      int elapsed = frameCounter - transitionStartFrame;
-      if (powerUpDurationFrames == 0 || elapsed >= powerUpDurationFrames)
-      {
-        isPoweringUp = false;
-        knobs.brightness = originalBrightness;
-        knobs.powerup = POWERUP_RENDER_DURATION;
-      }
-      else
-      {
-        double rate = static_cast<double>(elapsed) / powerUpDurationFrames;
-        knobs.brightness = transitionStartBrightness + (originalBrightness - transitionStartBrightness) * rate;
-        knobs.powerup = POWERUP_RENDER_DURATION * rate;
-      }
-    }
-    else if (isPoweringDown)
+    knobs.timeSinceStart = static_cast<double>(frameCounter - turnOnFrame) / settings.fps;;
+    if (isPoweringDown)
     {
       int elapsed = frameCounter - transitionStartFrame;
       if (elapsed >= powerDownDurationFrames)

@@ -7,6 +7,9 @@ namespace atv
 
 const int MAX_MULTICHAN = 2;
 
+// The hardcoded duration is said to be 6.0 s but
+// actually inter-row interval becomes black only after this period.
+// In fact we need to pass power up signal all the time, it is not a discrete state that goes in the beginning.
 const double POWERUP_DURATION = 6.0;  /* Hardcoded in analogtv.c */
 const double POWERDOWN_DURATION = 1.0;  /* Only used here */
 
@@ -97,7 +100,7 @@ void RandomControl::rotateKnobsStart()
   this->knobs.width  = 1.0;
   this->knobs.squish = 0.0;
 
-  this->knobs.powerup = 1000.0;
+  this->knobs.timeSinceStart = 0.0;
 
   //tv.hashnoise_rpm = 0;
   this->knobs.enableHashNoise = 1;
@@ -193,7 +196,6 @@ Control::Operation RandomControl::getNext()
     // don't switch channels when powering up / fading out
     if (this->frameCounter < this->powerUpLastFrame)
     {
-      this->knobs.powerup = curTime;
       canSwitchChannels = false;
     }
     else if (this->frameCounter >= this->fadeOutFirstFrame)
@@ -213,6 +215,8 @@ Control::Operation RandomControl::getNext()
 
       canSwitchChannels = false;
     }
+    // this signal should be sent continuously even after the initial power up period
+    this->knobs.timeSinceStart = curTime;
   }
 
   if (canSwitchChannels)

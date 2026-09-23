@@ -187,7 +187,7 @@ void RecordedControl::run()
   this->applyKnobs(this->settings.value("knobs", nlohmann::json::object()));
   this->targetBrightness = this->knobs.brightness;
   this->knobs.brightness = minBrightness;
-  this->knobs.powerup = 0.0;
+  this->knobs.timeSinceStart = 0.0;
 
   this->frameCounter = 0;
   this->sequenceIndex = 0;
@@ -196,7 +196,7 @@ void RecordedControl::run()
   this->applySequenceEntry(this->sequenceIndex);
   this->targetBrightness = this->knobs.brightness;
   this->knobs.brightness = minBrightness;
-  this->knobs.powerup = 0.0;
+  this->knobs.timeSinceStart = 0.0;
 
   this->powerUpFrames = static_cast<int>(powerUpDuration * this->fps);
   this->powerDownFrames = static_cast<int>(powerDownDuration * this->fps);
@@ -212,13 +212,13 @@ Control::Operation RecordedControl::getNext()
     double rate = this->powerUpFrames == 0 ? 1.0 : static_cast<double>(this->frameCounter) / this->powerUpFrames;
     rate = std::min(rate, 1.0);
     this->knobs.brightness = minBrightness + (this->targetBrightness - minBrightness) * rate;
-    this->knobs.powerup = renderPowerUpDuration * rate;
+    this->knobs.timeSinceStart = renderPowerUpDuration * rate;
     if (this->frameCounter >= this->powerUpFrames)
     {
       this->poweringUp = false;
       this->sequenceFrame = 0;
       this->knobs.brightness = this->targetBrightness;
-      this->knobs.powerup = renderPowerUpDuration;
+      this->knobs.timeSinceStart = renderPowerUpDuration;
     }
   }
   else if (this->poweringDown)

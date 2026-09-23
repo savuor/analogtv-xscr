@@ -130,7 +130,7 @@ public:
 
 struct Knobs
 {
-  double powerup;    // default 1000.0, time to power up the TV, in ms
+  double timeSinceStart; // in seconds, should not be changed manually
   double brightness; // brightness: -0.75 to 1.0, default 1.5 or 3.0 (?)
   double tint;       // 0 to 360, default 5
   double color;      // 0 to 4.0 or 5.0, default 0.7
@@ -152,7 +152,7 @@ struct Knobs
 
   //TODO: check all these ranges
   Knobs()
-    : powerup(1000.0), brightness(1.5), tint(5.0), color(0.7), contrast(1.5),
+    : timeSinceStart(0.0), brightness(1.5), tint(5.0), color(0.7), contrast(1.5),
       height(1.0), width(1.0), squish(0.0),
       enableHashNoise(true),
       horizontalDesync(0.0), squeezeBottom(0.0),
@@ -160,7 +160,7 @@ struct Knobs
       channelChangeCycles(200000),
       paramInfos {
         //                                        type       min         max     default  description                     pointer
-        {"powerup",                    {ParamType::Double,   0.0,     5000.0,    1000.0, "Power up time, ms",             &powerup}},
+        {"timeSinceStart",             {ParamType::Double,   0.0,     1000.0,       0.0, "Time since start, seconds",     &timeSinceStart}},
         {"brightness",                 {ParamType::Double, -0.75,        1.0,       1.5, "Brightness",                    &brightness}},
         {"tint",                       {ParamType::Double,   0.0,      360.0,       5.0, "Tint",                          &tint}},
         {"color",                      {ParamType::Double,   0.0,        5.0,       0.7, "Color",                         &color}},
@@ -191,7 +191,7 @@ struct Knobs
   {
     if (this != &other)
     {
-      powerup = other.powerup;
+      timeSinceStart = other.timeSinceStart;
       brightness = other.brightness;
       tint = other.tint;
       color = other.color;
@@ -319,7 +319,8 @@ private:
   float height_control, width_control, squish_control;
   float horiz_desync;
   float squeezebottom;
-  float powerup;
+  //TODO: rename it to time since beginning, and probably it is not it ms actually
+  float time_since_beginning;
 
   /* For fast display, set fakeit_top, fakeit_bot to
      the scanlines (0..ANALOGTV_V) that can be preserved on screen.

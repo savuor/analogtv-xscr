@@ -281,7 +281,6 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
   miscGrid->setColumnStretch(1, 1); // slider column fills remaining space, keeping all sliders the same width
   miscLayout->addLayout(miscGrid);
 
-  addSliderKnob("Power Up",           "powerup",          knobs.powerup,          miscGroupBox, miscGrid, 0);
   addSliderKnob("Horizontal Desync",  "horizontalDesync", knobs.horizontalDesync, miscGroupBox, miscGrid, 1);
 
   auto addCheckBox = [this, miscGroupBox, miscLayout](const QString& title, const std::string& paramName, bool currentValue)

@@ -247,7 +247,7 @@ AnalogTV::AnalogTV(int seed) :
   squish_control(),
   horiz_desync(),
   squeezebottom(),
-  powerup(),
+  time_since_beginning(),
 
   flutter_horiz_desync(),
   hashnoise_on(),
@@ -647,7 +647,7 @@ void AnalogTV::setup_levels(double avgheight)
 
     for (int i = 0; i<height; i++)
     {
-      this->leveltable[height][i].value = (40.0 + levelfac[this->leveltable[height][i].index] * puramp(this->powerup, 3.0, 6.0, 1.0)) / 256.0;
+      this->leveltable[height][i].value = (40.0 + levelfac[this->leveltable[height][i].index] * puramp(this->time_since_beginning, 3.0, 6.0, 1.0)) / 256.0;
     }
 
   }
@@ -877,7 +877,7 @@ void AnalogTV::parallel_for_draw_lines(const cv::Range& range, const std::vector
     float viswidth = ANALOGTV_PIC_LEN * 0.79f - 5.0f * bloomthisrow;
     float middle = ANALOGTV_PIC_LEN/2 - shiftthisrow;
 
-    float scanwidth = this->width_control * puramp(this->powerup, 0.5f, 0.3f, 1.0f);
+    float scanwidth = this->width_control * puramp(this->time_since_beginning, 0.5f, 0.3f, 1.0f);
 
     int scw = this->subwidth * scanwidth;
     if (scw > this->subwidth)
@@ -889,7 +889,7 @@ void AnalogTV::parallel_for_draw_lines(const cv::Range& range, const std::vector
     int pixrate = (int)((viswidth*65536.0f*1.0f)/this->subwidth)/scanwidth;
     int scanstart_i = (int)((middle-viswidth*0.5f)*65536.0f);
     int scanend_i = (ANALOGTV_PIC_LEN-1)*65536;
-    int squishright_i = (int)((middle+viswidth*(0.25f + 0.25f * puramp(this->powerup, 2.0f, 0.0f, 1.1f) - this->squish_control)) *65536.0f);
+    int squishright_i = (int)((middle+viswidth*(0.25f + 0.25f * puramp(this->time_since_beginning, 2.0f, 0.0f, 1.1f) - this->squish_control)) *65536.0f);
     int squishdiv = this->subwidth/15;
 
     assert(scanstart_i>=0);
@@ -904,7 +904,7 @@ void AnalogTV::parallel_for_draw_lines(const cv::Range& range, const std::vector
     std::vector<analogtv_yiq_s> yiq(ANALOGTV_PIC_LEN + 10);
     this->ntsc_to_yiq(rx_signal, lineno, signal_offset, (scanstart_i>>16)-10, (scanend_i>>16)+10, yiq);
 
-    float pixbright = this->contrast_control * puramp(this->powerup, 1.0f, 0.0f, 1.0f) / (0.5f+0.5f*this->puheight) * 1024.0f/100.0f;
+    float pixbright = this->contrast_control * puramp(this->time_since_beginning, 1.0f, 0.0f, 1.0f) / (0.5f+0.5f*this->puheight) * 1024.0f/100.0f;
     int pixmultinc = pixrate;
     int i = scanstart_i;
     int rrpIdx = scl;
@@ -1060,7 +1060,7 @@ void AnalogTV::set_knobs(const Knobs& knobs)
     this->width_control  = knobs.width;
     this->squish_control = knobs.squish;
 
-    this->powerup = knobs.powerup;
+    this->time_since_beginning = knobs.timeSinceStart;
 
     this->hashnoise_enable = knobs.enableHashNoise;
 
@@ -1092,7 +1092,7 @@ void AnalogTV::draw_signal(const std::vector<float>& rx_signal, double rx_signal
   /*bigloadchange=1;
     drawcount=0;*/
   this->crtload[ANALOGTV_TOP-1] = baseload;
-  this->puheight = puramp(this->powerup, 2.0, 1.0, 1.3) * this->height_control * (1.125 - 0.125 * puramp(this->powerup, 2.0, 2.0, 1.1));
+  this->puheight = puramp(this->time_since_beginning, 2.0, 1.0, 1.3) * this->height_control * (1.125 - 0.125 * puramp(this->time_since_beginning, 2.0, 2.0, 1.1));
 
   this->setup_levels(this->puheight * (double)this->useheight/(double)ANALOGTV_VISLINES);
 
