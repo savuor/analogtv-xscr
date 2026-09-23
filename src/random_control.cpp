@@ -218,6 +218,11 @@ Control::Operation RandomControl::getNext()
     // this signal should be sent continuously even after the initial power up period
     this->knobs.timeSinceStart = curTime;
   }
+  else
+  {
+    // to ignore powerup effects
+    this->knobs.timeSinceStart = 1000.0;
+  }
 
   if (canSwitchChannels)
   {
