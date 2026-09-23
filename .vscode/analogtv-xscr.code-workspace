@@ -38,7 +38,6 @@
 					"--verbose", "2",
 					"--control", ":random:duration=60:powerup:fixsettings",
 					//"--control", ":random:duration=60:powerup",
-					//"--control", ":gui:fps=30",
 					"--size", "1280", "1024",
 					"--seed", "1234",
 					"--in", //"~/Pictures/90s/*",
@@ -70,7 +69,7 @@
 					}
 				]
 			},
-						{
+			{
 				"name": "CLI recorded",
 				"type": "cppdbg",
 				"request": "launch",
