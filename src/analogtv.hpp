@@ -73,7 +73,12 @@ public:
     
     for (const auto& p : paramInfos)
     {
-      *(static_cast<double*>(p.second.value)) = p.second.defaultValue;
+      if (p.second.type == ParamType::Double)
+        *(static_cast<double*>(p.second.value)) = p.second.defaultValue;
+      else if (p.second.type == ParamType::Bool)
+        *(static_cast<bool*>(p.second.value)) = (std::abs(p.second.defaultValue) > std::numeric_limits<double>::epsilon());
+      else if (p.second.type == ParamType::Int)
+        *(static_cast<int*>(p.second.value)) = static_cast<int>(p.second.defaultValue);
     }
 
     std::fill_n(ghostfir, ANALOGTV_GHOSTFIR_LEN, 0.0);
@@ -110,20 +115,46 @@ public:
     return {0.0, 0.0};
   }
 
-   double getDefault(const std::string& param) const
-   {
-     auto it = paramInfos.find(param);
-     if (it != paramInfos.end()) return it->second.defaultValue;
-     else return 0.0;
-   }
+  double getDefault(const std::string& param) const
+  {
+    auto it = paramInfos.find(param);
+    return it != paramInfos.end() ? it->second.defaultValue : 0.0;
+  }
+
+  std::string getDescription(const std::string& param) const
+  {
+    auto it = paramInfos.find(param);
+    return it != paramInfos.end() ? it->second.description : "";
+  }
 
   void setValue(const std::string& param, double value)
   {
     auto it = paramInfos.find(param);
     if (it != paramInfos.end() && it->second.value)
     {
-      *(static_cast<double*>(it->second.value)) = value;
+      if (it->second.type == ParamType::Double)
+        *(static_cast<double*>(it->second.value)) = value;
+      else if (it->second.type == ParamType::Bool)
+        *(static_cast<bool*>(it->second.value)) = (std::abs(value) > std::numeric_limits<double>::epsilon());
+      else if (it->second.type == ParamType::Int)
+        *(static_cast<int*>(it->second.value)) = static_cast<int>(value);
     }
+  }
+
+  double getValue(const std::string& param) const
+  {
+    auto it = paramInfos.find(param);
+    if (it != paramInfos.end() && it->second.value)
+    {
+      if (it->second.type == ParamType::Double)
+        return *(static_cast<double*>(it->second.value));
+      else if (it->second.type == ParamType::Bool)
+        return static_cast<bool>(*(static_cast<bool*>(it->second.value)));
+      else if (it->second.type == ParamType::Int)
+        return static_cast<int>(*(static_cast<int*>(it->second.value)));
+      else return 0.0;
+    }
+    else return 0.0;
   }
 };
 
@@ -222,6 +253,12 @@ struct Knobs
     else return 0.0;
   }
 
+  std::string getDescription(const std::string& param) const
+  {
+    auto it = paramInfos.find(param);
+    return (it != paramInfos.end()) ? it->second.description : "";
+  }
+
   ParamType getType(const std::string& param) const
   {
     auto it = paramInfos.find(param);
@@ -247,6 +284,26 @@ struct Knobs
           break;
       }
     }
+  }
+
+  double getValue(const std::string& param) const
+  {
+    auto it = paramInfos.find(param);
+    if (it != paramInfos.end() && it->second.value)
+    {
+      switch (it->second.type)
+      {
+        case ParamType::Double:
+          return *static_cast<double*>(it->second.value);
+        case ParamType::Bool:
+          return static_cast<bool>(*(static_cast<bool*>(it->second.value)));
+        case ParamType::Int:
+          return static_cast<int>(*(static_cast<int*>(it->second.value)));
+        default:
+          return 0.0;
+      }
+    }
+    return 0.0;
   }
 };
 

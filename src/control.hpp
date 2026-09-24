@@ -54,12 +54,39 @@ struct ChanSetting
     return {0.0, 0.0};
   }
 
+  std::string getDescription(const std::string& param) const
+  {
+    auto it = chanParams.find(param);
+    return (it != chanParams.end()) ? it->second.description : "";
+  }
+
+  double getValue(const std::string& param) const
+  {
+    auto it = chanParams.find(param);
+    if (it != chanParams.end() && it->second.value)
+    {
+      if (it->second.type == ParamType::Double)
+        return *(static_cast<double*>(it->second.value));
+      else if (it->second.type == ParamType::Bool)
+        return static_cast<bool>(*(static_cast<bool*>(it->second.value)));
+      else if (it->second.type == ParamType::Int)
+        return static_cast<int>(*(static_cast<int*>(it->second.value)));
+      else return 0.0;
+    }
+    else return 0.0;
+  }
+
   void setValue(const std::string& param, double value)
   {
     auto it = chanParams.find(param);
     if (it != chanParams.end() && it->second.value)
     {
-      *(static_cast<double*>(it->second.value)) = value;
+      if (it->second.type == ParamType::Double)
+        *(static_cast<double*>(it->second.value)) = value;
+      else if (it->second.type == ParamType::Bool)
+        *(static_cast<bool*>(it->second.value)) = (std::abs(value) > std::numeric_limits<double>::epsilon());
+      else if (it->second.type == ParamType::Int)
+        *(static_cast<int*>(it->second.value)) = static_cast<int>(value);
     }
   }
 };
