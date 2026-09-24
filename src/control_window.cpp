@@ -239,9 +239,12 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
   colorGrid->setColumnStretch(1, 1); // slider column fills remaining space, keeping all sliders the same width
   colorLayout->addLayout(colorGrid);
 
-  auto addSliderKnob = [this, &knobs](const QString& title, const std::string& paramName, double currentValue,
+  auto addSliderKnob = [this, &knobs]( const std::string& paramName, 
                                        QWidget* groupBox, QGridLayout* grid, int row)
   {
+    const QString& title = QString::fromStdString(knobs.getDescription(paramName));
+    double currentValue = knobs.getValue(paramName);
+
     SliderSpinboxKnob* knob = new SliderSpinboxKnob(title, groupBox, grid, row);
     auto [minV, maxV] = knobs.getRange(paramName);
     knob->setRange(minV, maxV);
@@ -252,9 +255,9 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
     });
   };
 
-  addSliderKnob("Color",      "color",      knobs.color,      colorGroupBox, colorGrid, 0);
-  addSliderKnob("Brightness", "brightness", knobs.brightness, colorGroupBox, colorGrid, 1);
-  addSliderKnob("Contrast",   "contrast",   knobs.contrast,   colorGroupBox, colorGrid, 2);
+  addSliderKnob("color",      colorGroupBox, colorGrid, 0);
+  addSliderKnob("brightness", colorGroupBox, colorGrid, 1);
+  addSliderKnob("contrast",   colorGroupBox, colorGrid, 2);
 
   layout->addWidget(colorGroupBox);
 
@@ -266,10 +269,10 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
   geometryGrid->setColumnStretch(1, 1); // slider column fills remaining space, keeping all sliders the same width
   geometryLayout->addLayout(geometryGrid);
 
-  addSliderKnob("Width",          "width",         knobs.width,         geometryGroupBox, geometryGrid, 0);
-  addSliderKnob("Height",         "height",        knobs.height,        geometryGroupBox, geometryGrid, 1);
-  addSliderKnob("Squish",         "squish",        knobs.squish,        geometryGroupBox, geometryGrid, 2);
-  addSliderKnob("Squeeze Bottom", "squeezeBottom", knobs.squeezeBottom, geometryGroupBox, geometryGrid, 3);
+  addSliderKnob("width",         geometryGroupBox, geometryGrid, 0);
+  addSliderKnob("height",        geometryGroupBox, geometryGrid, 1);
+  addSliderKnob("squish",        geometryGroupBox, geometryGrid, 2);
+  addSliderKnob("squeezeBottom", geometryGroupBox, geometryGrid, 3);
 
   layout->addWidget(geometryGroupBox);
 
@@ -281,10 +284,12 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
   miscGrid->setColumnStretch(1, 1); // slider column fills remaining space, keeping all sliders the same width
   miscLayout->addLayout(miscGrid);
 
-  addSliderKnob("Horizontal Desync",  "horizontalDesync", knobs.horizontalDesync, miscGroupBox, miscGrid, 1);
+  addSliderKnob("horizontalDesync",  miscGroupBox, miscGrid, 1);
 
-  auto addCheckBox = [this, miscGroupBox, miscLayout](const QString& title, const std::string& paramName, bool currentValue)
+  auto addCheckBox = [this, &knobs, miscGroupBox, miscLayout](const std::string& paramName, bool currentValue)
   {
+    const QString& title = QString::fromStdString(knobs.getDescription(paramName));
+
     QCheckBox* checkBox = new QCheckBox(title, miscGroupBox);
     checkBox->setChecked(currentValue);
 #if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
@@ -301,11 +306,11 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
     miscLayout->addWidget(checkBox);
   };
 
-  addCheckBox("Use Flutter Horizontal Desync", "useFlutterHorizontalDesync", knobs.useFlutterHorizontalDesync);
-  addCheckBox("Enable Hash Noise",             "enableHashNoise",            knobs.enableHashNoise);
+  addCheckBox("useFlutterHorizontalDesync", knobs.useFlutterHorizontalDesync);
+  addCheckBox("enableHashNoise",            knobs.enableHashNoise);
 
   QHBoxLayout* cyclesLayout = new QHBoxLayout();
-  QLabel* cyclesLabel = new QLabel("Channel Change Cycles", miscGroupBox);
+  QLabel* cyclesLabel = new QLabel(QString::fromStdString(knobs.getDescription("channelChangeCycles")), miscGroupBox);
   QSpinBox* cyclesSpinBox = new QSpinBox(miscGroupBox);
   auto [cyclesMin, cyclesMax] = knobs.getRange("channelChangeCycles");
   cyclesSpinBox->setRange(static_cast<int>(cyclesMin), static_cast<int>(cyclesMax));
@@ -393,7 +398,10 @@ void ControlWindow::populateChannelSection(atv::ChanSetting& channel)
   channelLayout->addLayout(channelGrid);
 
   auto [noiseMin, noiseMax] = channel.getRange("noise_level");
-  addRangedSliderKnob("Noise Level", channel.noise_level, noiseMin, noiseMax, channelGroupBox, channelGrid, 0,
+  const QString& noiseTitle = QString::fromStdString(channel.getDescription("noise_level"));
+  double noiseCurrentValue = channel.getValue("noise_level");
+
+  addRangedSliderKnob(noiseTitle, noiseCurrentValue, noiseMin, noiseMax, channelGroupBox, channelGrid, 0,
     [this](double value)
     {
       emit chanParamChanged("noise_level", value);
@@ -428,26 +436,27 @@ void ControlWindow::populateChannelSection(atv::ChanSetting& channel)
     recGrid->setColumnStretch(1, 1);
     tabLayout->addLayout(recGrid);
 
-    auto addReceptionSlider = [this, tab, recGrid, index](const QString& title, const std::string& paramName,
-                                                           double currentValue, double minV, double maxV, int row)
+    auto addReceptionSlider = [this, &rec, tab, recGrid, index](const std::string& paramName, int row)
     {
+      const QString& title = QString::fromStdString(rec.getDescription(paramName));
+      double currentValue = rec.getValue(paramName);
+
+      double minV = rec.getRange(paramName).first;
+      double maxV = rec.getRange(paramName).second;
+
       addRangedSliderKnob(title, currentValue, minV, maxV, tab, recGrid, row, [this, index, paramName](double value)
       {
         emit receptionParamChanged(index, QString::fromStdString(paramName), value);
       });
     };
 
-    auto [levelMin, levelMax] = rec.getRange("level");
-    addReceptionSlider("Level", "level", rec.level, levelMin, levelMax, 0);
+    addReceptionSlider("level", 0);
 
-    auto [multipathMin, multipathMax] = rec.getRange("multipath");
-    addReceptionSlider("Multipath", "multipath", rec.multipath, multipathMin, multipathMax, 1);
+    addReceptionSlider("multipath", 1);
 
-    auto [ofsMin, ofsMax] = rec.getRange("ofs");
-    addReceptionSlider("Offset", "ofs", rec.ofs, ofsMin, ofsMax, 2);
+    addReceptionSlider("ofs", 2);
 
-    auto [freqMin, freqMax] = rec.getRange("freqerr");
-    addReceptionSlider("Frequency Error", "freqerr", rec.freqerr, freqMin, freqMax, 3);
+    addReceptionSlider("freqerr", 3);
 
     receptionsTabs->addTab(tab, QString("Reception %1").arg(index));
   }
