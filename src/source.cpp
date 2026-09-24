@@ -24,7 +24,7 @@ struct BarsSource : Source
 
   BarsSource(const cv::Mat& _logoImg = { }, cv::Size _outSize = defaultSize, bool _displayTimestamp = false);
 
-  void update(AnalogInput& input, double time) override;
+  void update(AnalogInput& input, double time, bool do_ssavi, bool do_cb) override;
 
   cv::Size getImageSize() override
   {
@@ -34,11 +34,6 @@ struct BarsSource : Source
   void setOutSize(cv::Size _outSize) override
   {
     outSize = _outSize;
-  }
-
-  void setSsavi(bool _do_ssavi) override
-  {
-    this->do_ssavi = _do_ssavi;
   }
 
   std::string getName() const override
@@ -74,7 +69,7 @@ BarsSource::BarsSource(const cv::Mat& _logoImg, cv::Size _outSize, bool _display
 }
 
 
-void BarsSource::update(AnalogInput& input, double time)
+void BarsSource::update(AnalogInput& input, double time, bool do_ssavi, bool do_cb)
 {
   // original name: update_smpte_colorbars()
 
@@ -103,7 +98,7 @@ void BarsSource::update(AnalogInput& input, double time)
     {75, 0, 0.0}     /* gray */
   };
 
-  input.setup_sync(1, this->do_ssavi);
+  input.setup_sync(do_cb, do_ssavi);
 
   for (int col = 0; col < 7; col++)
   {
@@ -158,18 +153,17 @@ static int imageSourceCount = 0;
 struct ImageSource : Source
 {
   ImageSource() :
-    ImageSource(/*img*/ { }, /*outSize*/ { }, /*_do_ssavi*/ false, /*_displayTimestamp*/ false)
+    ImageSource(/*img*/ { }, /*outSize*/ { }, /*_displayTimestamp*/ false)
   { }
 
   ImageSource(const cv::Mat& _img, bool _displayTimestamp = false) :
-    ImageSource(_img, _img.size(), false, _displayTimestamp)
+    ImageSource(_img, _img.size(), _displayTimestamp)
   { }
 
-  ImageSource(const cv::Mat& _img, cv::Size _outSize, bool _do_ssavi, bool _displayTimestamp) :
+  ImageSource(const cv::Mat& _img, cv::Size _outSize, bool _displayTimestamp) :
     Source(),
     img(_img),
     resizedImg(_img),
-    do_ssavi(_do_ssavi),
     displayTimestamp(_displayTimestamp),
     number(imageSourceCount++)
   {
@@ -183,12 +177,7 @@ struct ImageSource : Source
 
   void setOutSize(cv::Size _outSize) override;
 
-  void setSsavi(bool _do_ssavi) override
-  {
-    do_ssavi = _do_ssavi;
-  }
-
-  void update(AnalogInput& input, double time) override;
+  void update(AnalogInput& input, double time, bool do_ssavi, bool do_cb) override;
 
   std::string getName() const override
   {
@@ -197,12 +186,11 @@ struct ImageSource : Source
 
   cv::Mat img;
   cv::Mat resizedImg;
-  bool do_ssavi;
   bool displayTimestamp;
   int number;
 };
 
-void ImageSource::update(AnalogInput& input, double time)
+void ImageSource::update(AnalogInput& input, double time, bool do_ssavi, bool do_cb)
 {
   //TODO: do not update since last time
   int w = this->resizedImg.cols * 0.815; /* underscan */
@@ -210,7 +198,7 @@ void ImageSource::update(AnalogInput& input, double time)
   int x = (this->outSize.width  - w) / 2;
   int y = (this->outSize.height - h) / 2;
 
-  input.setup_sync(1, this->do_ssavi);
+  input.setup_sync(do_cb, do_ssavi);
 
   input.load_ximage(this->resizedImg, cv::Mat4b(), x, y, w, h, this->outSize.width, this->outSize.height);
 
@@ -276,7 +264,7 @@ struct VideoSource : Source
 
   void init(bool showTimestamp);
 
-  void update(AnalogInput& input, double time) override;
+  void update(AnalogInput& input, double time, bool do_ssavi, bool do_cb) override;
 
   cv::Size getImageSize() override
   {
@@ -284,11 +272,6 @@ struct VideoSource : Source
   }
 
   void setOutSize(cv::Size size) override;
-
-  void setSsavi(bool _do_ssavi) override
-  {
-    this->do_ssavi = _do_ssavi;
-  }
 
   std::string getName() const override
   {
@@ -364,7 +347,7 @@ void VideoSource::setOutSize(cv::Size _outSize)
 }
 
 
-void VideoSource::update(AnalogInput& input, double time)
+void VideoSource::update(AnalogInput& input, double time, bool do_ssavi, bool do_cb)
 {
   cv::Mat frame, prepared;
 
@@ -418,7 +401,7 @@ void VideoSource::update(AnalogInput& input, double time)
   int x = (this->outSize.width  - w) / 2;
   int y = (this->outSize.height - h) / 2;
 
-  input.setup_sync(1, this->do_ssavi);
+  input.setup_sync(do_cb, do_ssavi);
 
   input.load_ximage(prepared, cv::Mat4b(), x, y, w, h, this->outSize.width, this->outSize.height);
 

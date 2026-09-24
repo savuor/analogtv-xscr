@@ -66,7 +66,6 @@ int main(int argc, char** argv)
   for (const auto& s : sources)
   {
     s->setOutSize(outSize);
-    s->setSsavi(rng() % 20 == 0);
   }
 
   // Build channels from config
@@ -83,6 +82,8 @@ int main(int argc, char** argv)
       rec.setValue("level",     recCfg.level);
       rec.setValue("multipath", recCfg.multipath);
       rec.setValue("freqerr",   recCfg.freqerr);
+      rec.setValue("do_ssavi", recCfg.do_ssavi);
+      rec.setValue("do_cb",    recCfg.do_cb);
       ch.receptions.push_back(rec);
       ch.sources.push_back(sources.at(recCfg.sourceIndex));
     }
@@ -225,7 +226,7 @@ int main(int argc, char** argv)
       for (size_t i = 0; i < curChannel.receptions.size(); i++)
       {
         atv::AnalogReception& rec = curChannel.receptions[i];
-        curChannel.sources[i]->update(rec.input, curTime);
+        curChannel.sources[i]->update(rec.input, curTime, rec.do_ssavi, rec.do_cb);
         rec.update(rng);
       }
 

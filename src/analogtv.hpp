@@ -45,6 +45,8 @@ struct AnalogReception
   double level;     // 0.05 to 2.0, default 0.3
   double multipath; // 0.0 to 1.0, default 0.0
   double freqerr;   // -3.0 to 3.0, default 0.0, only for ghosting stations
+  bool do_ssavi;   // whether to apply SSAVI, default false
+  bool do_cb;      // whether to apply color burst, default true
 
   double ghostfir[ANALOGTV_GHOSTFIR_LEN];
   // used to update ghostfir
@@ -61,14 +63,19 @@ struct AnalogReception
 public:
   AnalogReception()
     : ofs(), level(), multipath(), freqerr(),
+      do_ssavi(),
+      do_cb(),
       hfloss(), hfloss2(),
       paramInfos()
   {
     const_cast<std::map<std::string, ParamInfo>&>(paramInfos) = {
+      //                        type     min                       max   default  description      pointer
       {"ofs",       {ParamType::Double,  0.0 , ANALOGTV_SIGNAL_LEN-1.0,  0.0, "Offset in samples", &ofs}},
       {"level",     {ParamType::Double,  0.05,                     2.0,  0.3, "Signal level",      &level}},
       {"multipath", {ParamType::Double,  0.0 ,                     1.0,  0.0, "Multipath",         &multipath}},
       {"freqerr",   {ParamType::Double, -3.0 ,                     3.0,  0.0, "Frequency error",   &freqerr}},
+      {"do_ssavi",  {ParamType::Bool,    0.0 ,                     1.0,  0.0, "Apply SSAVI",       &do_ssavi}},
+      {"do_cb",     {ParamType::Bool,    0.0 ,                     1.0,  1.0, "Apply color burst", &do_cb}},
     };
     
     for (const auto& p : paramInfos)

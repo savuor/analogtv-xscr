@@ -101,7 +101,9 @@ AppSettings loadSettings(const std::string& filePath)
           if (jrec.contains("level"))    rec.level       = jrec["level"].get<double>();
           if (jrec.contains("multipath"))rec.multipath   = jrec["multipath"].get<double>();
           if (jrec.contains("ofs"))      rec.ofs         = jrec["ofs"].get<double>();
-          if (jrec.contains("freqerr")) rec.freqerr     = jrec["freqerr"].get<double>();
+          if (jrec.contains("freqerr")) rec.freqerr      = jrec["freqerr"].get<double>();
+          if (jrec.contains("do_ssavi")) rec.do_ssavi   = jrec["do_ssavi"].get<bool>();
+          if (jrec.contains("do_cb"))    rec.do_cb      = jrec["do_cb"].get<bool>();
           ch.receptions.push_back(rec);
         }
       }

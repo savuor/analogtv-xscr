@@ -25,6 +25,8 @@ struct AppSettings
     double multipath = 0.0;
     double ofs = 0.0;
     double freqerr = 0.0;
+    bool do_ssavi = false;
+    bool do_cb = true;
   };
 
   struct ChannelConfig

@@ -74,8 +74,6 @@ static void run(Params params)
   for (const auto& s : sources)
   {
     s->setOutSize(outSize);
-    // randomly set ssavi (broken sync or something like this)
-    s->setSsavi(rng() % 20 == 0);
   }
 
   atv::SetTopBox tv(seed, outSize.width, outSize.height);
@@ -118,7 +116,7 @@ static void run(Params params)
     for (size_t i = 0; i < curChannel.receptions.size(); i++)
     {
       atv::AnalogReception& rec = curChannel.receptions[i];
-      curChannel.sources[i]->update(rec.input, curTime);
+      curChannel.sources[i]->update(rec.input, curTime, rec.do_ssavi, rec.do_cb);
       /* Noisy image */
       rec.update(rng);
     }

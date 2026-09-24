@@ -458,6 +458,24 @@ void ControlWindow::populateChannelSection(atv::ChanSetting& channel)
 
     addReceptionSlider("freqerr", 3);
 
+    auto addReceptionCheckBox = [this, &rec, tab, recGrid, index](const std::string& paramName, int row)
+    {
+      const QString& title = QString::fromStdString(rec.getDescription(paramName));
+      bool currentValue = std::abs(rec.getValue(paramName)) > std::numeric_limits<double>::epsilon();
+
+      QCheckBox* checkBox = new QCheckBox(title, tab);
+      checkBox->setChecked(currentValue);
+      connect(checkBox, &QCheckBox::toggled, [this, index, paramName](bool checked)
+      {
+        emit receptionParamChanged(index, QString::fromStdString(paramName), checked ? 1.0 : 0.0);
+      });
+      recGrid->addWidget(checkBox, row, 0, 1, 2);
+    };
+
+    addReceptionCheckBox("do_ssavi", 4);
+
+    addReceptionCheckBox("do_cb", 5);
+
     receptionsTabs->addTab(tab, QString("Reception %1").arg(index));
   }
 }

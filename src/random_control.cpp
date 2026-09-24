@@ -17,7 +17,7 @@ const double POWERDOWN_DURATION = 1.0;  /* Only used here */
 // why const ref to sources does not work?
 void RandomControl::createChannels(const std::vector<std::shared_ptr<atv::Source>> sources)
 {
-  size_t nChannels = std::max(sources.size() * 2, 6UL);
+  size_t nChannels = std::max(sources.size() * 2UL, 6UL);
 
   this->chanSettings = { };
   for (size_t i = 0; i < nChannels; i++)
@@ -66,6 +66,7 @@ void RandomControl::createChannels(const std::vector<std::shared_ptr<atv::Source
               because it doesn't matter otherwise */
             rec.freqerr = this->rng.uniform(-1.0, 1.0) * 3.0;
           }
+          rec.do_ssavi = this->rng() % 20 == 0;
         }
 
         channelSetting.receptions.push_back(rec);
