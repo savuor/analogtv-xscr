@@ -79,6 +79,7 @@ namespace atv
 
 /* #define DEBUG 1 */
 
+// power up ramp, from 0 to 1, exponentially saturating function for power-up behavior
 constexpr float puramp(float powerUp, float tc, float start, float over)
 {
   float pt = powerUp - start;
