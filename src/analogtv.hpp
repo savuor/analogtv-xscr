@@ -177,7 +177,7 @@ struct Knobs
   double width;      // default 1.0
   double squish;     // default 0.0
 
-  bool enableHashNoise; // default 1
+  double shrinkpulseProbability; // default 0.01
 
   double horizontalDesync; // -5.0 to 5.0, default 0.0
   double squeezeBottom;    // -1.0 to 4.0, default 0.0
@@ -192,7 +192,7 @@ struct Knobs
   Knobs()
     : timeSinceStart(0.0), brightness(1.5), tint(5.0), color(0.7), contrast(1.5),
       height(1.0), width(1.0), squish(0.0),
-      enableHashNoise(true),
+      shrinkpulseProbability(0.01),
       horizontalDesync(0.0), squeezeBottom(0.0),
       useFlutterHorizontalDesync(false),
       channelChangeCycles(200000),
@@ -206,7 +206,7 @@ struct Knobs
         {"height",                     {ParamType::Double,   0.5,        2.0,       1.0, "Height",                        &height}},
         {"width",                      {ParamType::Double,   0.5,        2.0,       1.0, "Width",                         &width}},
         {"squish",                     {ParamType::Double,   0.0,        1.0,       0.0, "Squish",                        &squish}},
-        {"enableHashNoise",            {ParamType::Bool,     0.0,        1.0,       1.0, "Enable hash noise",             &enableHashNoise}},
+        {"shrinkpulseProbability",     {ParamType::Double,   0.0,        1.0,       0.01, "Shrink pulse probability",     &shrinkpulseProbability}},
         {"horizontalDesync",           {ParamType::Double,  -5.0,        5.0,       0.0, "Horizontal desync",             &horizontalDesync}},
         {"squeezeBottom",              {ParamType::Double,  -1.0,        4.0,       0.0, "Squeeze bottom",                &squeezeBottom}},
         {"useFlutterHorizontalDesync", {ParamType::Bool,     0.0,        1.0,       0.0, "Use flutter horizontal desync", &useFlutterHorizontalDesync}},
@@ -237,7 +237,7 @@ struct Knobs
       height = other.height;
       width = other.width;
       squish = other.squish;
-      enableHashNoise = other.enableHashNoise;
+      shrinkpulseProbability = other.shrinkpulseProbability;
       horizontalDesync = other.horizontalDesync;
       squeezeBottom = other.squeezeBottom;
       useFlutterHorizontalDesync = other.useFlutterHorizontalDesync;
@@ -410,8 +410,12 @@ private:
  // int hashnoise_counter;
  // int hashnoise_times[ANALOGTV_V];
  // int hashnoise_signal[ANALOGTV_V];
-  int hashnoise_on;
-  int hashnoise_enable;
+
+  // This functionality was replaced by shrinkpulse_probability
+  // int hashnoise_on;
+  // int hashnoise_enable;
+
+  float shrinkpulse_probability;
 
 public:
 

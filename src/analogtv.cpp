@@ -251,8 +251,7 @@ AnalogTV::AnalogTV(int seed) :
   time_since_beginning(),
 
   flutter_horiz_desync(),
-  hashnoise_on(),
-  hashnoise_enable()
+  shrinkpulse_probability()
 {
   // float crtload[ANALOGTV_V];
 
@@ -459,17 +458,9 @@ void AnalogTV::setup_frame(double rx_signal_level)
   }
 
   /* let's leave it to process shrinkpulse */
-  if (this->hashnoise_enable && !this->hashnoise_on)
+  if (this->rng() % 100 < this->shrinkpulse_probability * 100)
   {
-    if (this->rng() % 10000 == 0)
-    {
-      this->hashnoise_on = 1;
-      this->shrinkpulse = this->rng() % ANALOGTV_V;
-    }
-  }
-  if (this->rng() % 1000 == 0)
-  {
-    this->hashnoise_on = 0;
+    this->shrinkpulse = this->rng() % ANALOGTV_V;
   }
 
   if (std::abs(rx_signal_level) > std::numeric_limits<double>::epsilon())
@@ -1052,7 +1043,7 @@ void AnalogTV::set_knobs(const Knobs& knobs)
 
     this->time_since_beginning = knobs.timeSinceStart;
 
-    this->hashnoise_enable = knobs.enableHashNoise;
+    this->shrinkpulse_probability = knobs.shrinkpulseProbability;
 
     this->horiz_desync  = knobs.horizontalDesync;
     this->squeezebottom = knobs.squeezeBottom;

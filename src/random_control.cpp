@@ -104,7 +104,7 @@ void RandomControl::rotateKnobsStart()
   this->knobs.timeSinceStart = 0.0;
 
   //tv.hashnoise_rpm = 0;
-  this->knobs.enableHashNoise = 1;
+  this->knobs.shrinkpulseProbability = 0.01;
 
   this->knobs.horizontalDesync = this->rng.uniform(-5.0, 5.0);
   this->knobs.squeezeBottom = this->rng.uniform(-1.0, 4.0);

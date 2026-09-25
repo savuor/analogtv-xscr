@@ -307,7 +307,7 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
   };
 
   addCheckBox("useFlutterHorizontalDesync", knobs.useFlutterHorizontalDesync);
-  addCheckBox("enableHashNoise",            knobs.enableHashNoise);
+  addSliderKnob("shrinkpulseProbability", miscGroupBox, miscGrid, 2);
 
   QHBoxLayout* cyclesLayout = new QHBoxLayout();
   QLabel* cyclesLabel = new QLabel(QString::fromStdString(knobs.getDescription("channelChangeCycles")), miscGroupBox);
