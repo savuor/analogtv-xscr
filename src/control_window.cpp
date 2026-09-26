@@ -476,6 +476,8 @@ void ControlWindow::populateChannelSection(atv::ChanSetting& channel)
 
     addReceptionCheckBox("do_cb", 5);
 
+    addReceptionCheckBox("hfloss_enable", 6);
+
     receptionsTabs->addTab(tab, QString("Reception %1").arg(index));
   }
 }

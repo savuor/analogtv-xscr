@@ -1224,7 +1224,7 @@ void AnalogReception::update(cv::RNG& rng)
       this->ghostfir[i] = 0.8*this->ghostfir[i] + 0.2*this->ghostfir2[i];
     }
 
-    if (0)
+    if (this->hfloss_enable)
     {
       this->hfloss2 += -(this->hfloss2/16.0) + this->multipath * rng.uniform(-0.04, 0.04);
       this->hfloss = 0.5*this->hfloss + 0.5*this->hfloss2;

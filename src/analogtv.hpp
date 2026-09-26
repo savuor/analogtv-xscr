@@ -47,6 +47,7 @@ struct AnalogReception
   double freqerr;   // -3.0 to 3.0, default 0.0, only for ghosting stations
   bool do_ssavi;   // whether to apply SSAVI, default false
   bool do_cb;      // whether to apply color burst, default true
+  bool hfloss_enable; // whether to enable hfloss, default false (high-frequency loss???)
 
   double ghostfir[ANALOGTV_GHOSTFIR_LEN];
   // used to update ghostfir
@@ -65,17 +66,19 @@ public:
     : ofs(), level(), multipath(), freqerr(),
       do_ssavi(),
       do_cb(),
+      hfloss_enable(),
       hfloss(), hfloss2(),
       paramInfos()
   {
     const_cast<std::map<std::string, ParamInfo>&>(paramInfos) = {
-      //                        type     min                       max   default  description      pointer
-      {"ofs",       {ParamType::Double,  0.0 , ANALOGTV_SIGNAL_LEN-1.0,  0.0, "Offset in samples", &ofs}},
-      {"level",     {ParamType::Double,  0.05,                     2.0,  0.3, "Signal level",      &level}},
-      {"multipath", {ParamType::Double,  0.0 ,                     1.0,  0.0, "Multipath",         &multipath}},
-      {"freqerr",   {ParamType::Double, -3.0 ,                     3.0,  0.0, "Frequency error",   &freqerr}},
-      {"do_ssavi",  {ParamType::Bool,    0.0 ,                     1.0,  0.0, "Apply SSAVI",       &do_ssavi}},
-      {"do_cb",     {ParamType::Bool,    0.0 ,                     1.0,  1.0, "Apply color burst", &do_cb}},
+      //                        type     min                           max   default   description                     pointer
+      {"ofs",           {ParamType::Double,  0.0 , ANALOGTV_SIGNAL_LEN-1.0,      0.0, "Offset in samples",             &ofs}},
+      {"level",         {ParamType::Double,  0.05,                     2.0,      0.3, "Signal level",                  &level}},
+      {"multipath",     {ParamType::Double,  0.0 ,                     1.0,      0.0, "Multipath",                     &multipath}},
+      {"freqerr",       {ParamType::Double, -3.0 ,                     3.0,      0.0, "Frequency error",               &freqerr}},
+      {"do_ssavi",      {ParamType::Bool,    0.0 ,                     1.0,      0.0, "Apply SSAVI",                   &do_ssavi}},
+      {"do_cb",         {ParamType::Bool,    0.0 ,                     1.0,      1.0, "Apply color burst",             &do_cb}},
+      {"hfloss_enable", {ParamType::Bool,    0.0 ,                     1.0,      0.0, "Enable hfloss (for multipath)", &hfloss_enable}},
     };
     
     for (const auto& p : paramInfos)
@@ -100,6 +103,9 @@ public:
       level = other.level;
       multipath = other.multipath;
       freqerr = other.freqerr;
+      do_ssavi = other.do_ssavi;
+      do_cb = other.do_cb;
+      hfloss_enable = other.hfloss_enable;
       hfloss = other.hfloss;
       hfloss2 = other.hfloss2;
       std::copy_n(other.ghostfir, ANALOGTV_GHOSTFIR_LEN, ghostfir);
