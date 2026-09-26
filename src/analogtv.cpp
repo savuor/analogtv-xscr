@@ -1205,6 +1205,7 @@ void AnalogTV::draw_signal(const std::vector<float>& rx_signal, double rx_signal
   }
 }
 
+
 void AnalogReception::update(cv::RNG& rng)
 {
   this->ofs += this->freqerr;
