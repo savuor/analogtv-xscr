@@ -144,40 +144,58 @@ struct Properties : std::map<std::string, PropertyInfo>
   std::pair<double, double> getRange(const std::string& param) const
   {
     auto it = this->find(param);
-    if (it != this->end()) return {it->second.min, it->second.max};
-    return {0.0, 0.0};
+    if (it != this->end())
+      return {it->second.min, it->second.max};
+    else
+      throw std::runtime_error("Parameter not found: " + param);
   }
 
   double getDefault(const std::string& param) const
   {
     auto it = this->find(param);
-    return it != this->end() ? it->second.defaultValue : 0.0;
+    if (it != this->end())
+      return it->second.defaultValue;
+    else
+      throw std::runtime_error("Parameter not found: " + param);
   }
 
   std::string getDescription(const std::string& param) const
   {
     auto it = this->find(param);
-    return it != this->end() ? it->second.description : "";
+    if (it != this->end())
+      return it->second.description;
+    else
+      throw std::runtime_error("Parameter not found: " + param);
   }
 
   ControlType getControlType(const std::string& param) const
   {
     auto it = this->find(param);
-    return it != this->end() ? it->second.controlType : ControlType::DoubleSpin;
+    if (it != this->end())
+      return it->second.controlType;
+    else
+      throw std::runtime_error("Parameter not found: " + param);
   }
 
   void setValue(const std::string& param, double value) const
   {
     auto it = this->find(param);
-    if (it != this->end() && it->second.value)
+    if (it != this->end())
     {
-      if (it->second.type == PropertyType::Double)
-        *(static_cast<double*>(it->second.value)) = value;
-      else if (it->second.type == PropertyType::Bool)
-        *(static_cast<bool*>(it->second.value)) = (std::abs(value) > std::numeric_limits<double>::epsilon());
-      else if (it->second.type == PropertyType::Int)
-        *(static_cast<int*>(it->second.value)) = static_cast<int>(value);
+      if (!it->second.value)
+        throw std::runtime_error("Parameter has no associated value: " + param);
+      else
+      {
+        if (it->second.type == PropertyType::Double)
+          *(static_cast<double*>(it->second.value)) = value;
+        else if (it->second.type == PropertyType::Bool)
+          *(static_cast<bool*>(it->second.value)) = (std::abs(value) > std::numeric_limits<double>::epsilon());
+        else if (it->second.type == PropertyType::Int)
+          *(static_cast<int*>(it->second.value)) = static_cast<int>(value);
+      }
     }
+    else
+      throw std::runtime_error("Parameter not found: " + param);
   }
 
   double getValue(const std::string& param) const
@@ -185,15 +203,21 @@ struct Properties : std::map<std::string, PropertyInfo>
     auto it = this->find(param);
     if (it != this->end() && it->second.value)
     {
-      if (it->second.type == PropertyType::Double)
-        return *(static_cast<double*>(it->second.value));
-      else if (it->second.type == PropertyType::Bool)
-        return static_cast<bool>(*(static_cast<bool*>(it->second.value)));
-      else if (it->second.type == PropertyType::Int)
-        return static_cast<int>(*(static_cast<int*>(it->second.value)));
-      else return 0.0;
+      if (!it->second.value)
+        throw std::runtime_error("Parameter has no associated value: " + param);
+      else
+      {
+        if (it->second.type == PropertyType::Double)
+          return *(static_cast<double*>(it->second.value));
+        else if (it->second.type == PropertyType::Bool)
+          return static_cast<bool>(*(static_cast<bool*>(it->second.value)));
+        else if (it->second.type == PropertyType::Int)
+          return static_cast<int>(*(static_cast<int*>(it->second.value)));
+        else return 0.0;
+      }
     }
-    else return 0.0;
+    else
+      throw std::runtime_error("Parameter not found: " + param);
   }
 };
 
