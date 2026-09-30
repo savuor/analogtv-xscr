@@ -186,10 +186,16 @@ struct ImageSource : Source
     return "Image #" + std::to_string(number);
   }
 
+  void resizeImage();
+
   cv::Mat img;
   cv::Mat resizedImg;
   cv::Point offset;
   int number;
+
+  double prevVerticalUnderscan = 0.970;
+  double prevHorizontalUnderscan = 0.815;
+  int prevLineOverscan = 5;
 };
 
 ImageSource::ImageSource(const cv::Mat& _img) :
@@ -199,18 +205,34 @@ ImageSource::ImageSource(const cv::Mat& _img) :
   offset(),
   number(imageSourceCount++)
 {
+  this->resizeImage();
+}
+
+void ImageSource::resizeImage()
+{
   cv::Size fittedSize = fitSize(this->img.size(), this->vertUnderscan, this->horizUnderscan, this->lineOverscan);
 
   this->offset.x = (ANALOGTV_VIS_LEN  - fittedSize.width) / 2;
   this->offset.y = (ANALOGTV_VISLINES - fittedSize.height) / 2;
 
   cv::resize(this->img, this->resizedImg, fittedSize, 0, 0, cv::INTER_LINEAR);
+
+  this->prevVerticalUnderscan = this->vertUnderscan;
+  this->prevHorizontalUnderscan = this->horizUnderscan;
+  this->prevLineOverscan = this->lineOverscan;
 }
 
 
 void ImageSource::update(AnalogInput& input, double time)
 {
   this->setupSync(input);
+
+  if (std::abs(this->vertUnderscan - this->prevVerticalUnderscan) > 1e-6 ||
+      std::abs(this->horizUnderscan - this->prevHorizontalUnderscan) > 1e-6 ||
+      this->lineOverscan != this->prevLineOverscan)
+  {
+    this->resizeImage();
+  }
 
   this->loadXImage(input, this->resizedImg, cv::Mat4b(), offset.x, offset.y);
 
@@ -296,11 +318,6 @@ void VideoSource::init()
   this->frameSize = { (int)cap.get(cv::CAP_PROP_FRAME_WIDTH), (int)cap.get(cv::CAP_PROP_FRAME_HEIGHT)};
   this->fps = cap.get(cv::CAP_PROP_FPS);
 
-  this->fittedSize = fitSize(this->frameSize, this->vertUnderscan, this->horizUnderscan, this->lineOverscan);
-
-  this->offset.x = (ANALOGTV_VIS_LEN  - this->fittedSize.width) / 2;
-  this->offset.y = (ANALOGTV_VISLINES - this->fittedSize.height) / 2;
-
   Log::write(2, "reading from " + (isCamera ? ("cam #" + std::to_string(nCamera)) : videoFileName) + " " +
                 std::to_string(frameSize.width) + "x" + std::to_string(frameSize.height) + " " + std::to_string(this->fps) + " FPS");
 
@@ -342,6 +359,12 @@ void VideoSource::update(AnalogInput& input, double time)
     frame = this->lastRetrievedFrame;
     ok = true;
   }
+
+  // these properties can be changed in realtime
+  this->fittedSize = fitSize(this->frameSize, this->vertUnderscan, this->horizUnderscan, this->lineOverscan);
+
+  this->offset.x = (ANALOGTV_VIS_LEN  - this->fittedSize.width) / 2;
+  this->offset.y = (ANALOGTV_VISLINES - this->fittedSize.height) / 2;
 
   if (!ok || frame.empty())
   {
