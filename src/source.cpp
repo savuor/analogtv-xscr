@@ -70,8 +70,6 @@ BarsSource::BarsSource(const cv::Mat& _logoImg) :
   const double scale = 0.3;
   cv::resize(_logoImg, this->logoImg, cv::Size(), signalStretch * scale, scale, cv::INTER_LINEAR);
 
-  //TODO: stretch logo image horizontally as it is done in ImageSource
-
   /* Pull the alpha out of the logo and make a separate mask ximage. */
   this->logoMask = cv::Mat(logoImg.size(), CV_8UC4, cv::Scalar(0));
   std::vector<cv::Mat> logoCh;
