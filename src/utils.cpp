@@ -128,6 +128,7 @@ cv::Mat loadImage(const std::string& fname)
   {
     //TODO: BGR to RGB?
     cvt4 = img;
+    Log::write(2, "4-channel image loaded, need BGRA to RGBA conversion?");
   }
   else
   {
