@@ -26,7 +26,12 @@ void Source::finishFrame(AnalogInput& input, double time)
   if (this->displayTimestamp)
   {
     cv::Mat osd = drawTime(time);
-    this->loadXImage(input, osd, cv::Mat4b(), 16, 16);
+    cv::Mat resizedOsd;
+    const double signalStretch = (double)ANALOGTV_VIS_LEN * (3.0 / 4.0) / ANALOGTV_VISLINES;
+    const double scale = 1.0;
+    cv::resize(osd, resizedOsd, cv::Size(), signalStretch * scale, scale, cv::INTER_LINEAR);
+
+    this->loadXImage(input, resizedOsd, cv::Mat4b(), 16, 16);
   }
 
   input.finish_frame();
@@ -52,13 +57,18 @@ struct BarsSource : Source
 
 
 BarsSource::BarsSource(const cv::Mat& _logoImg) :
-  Source()
+  Source(),
+  logoImg()
 {
-  this->logoImg = _logoImg;
   this->number = barsSourceCount++;
 
   if (_logoImg.empty())
     return;
+
+  // stretch image to signal resolution
+  const double signalStretch = (double)ANALOGTV_VIS_LEN * (3.0 / 4.0) / ANALOGTV_VISLINES;
+  const double scale = 0.3;
+  cv::resize(_logoImg, this->logoImg, cv::Size(), signalStretch * scale, scale, cv::INTER_LINEAR);
 
   //TODO: stretch logo image horizontally as it is done in ImageSource
 

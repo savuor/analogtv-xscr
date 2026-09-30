@@ -86,9 +86,10 @@ cv::Mat drawTime(double time)
   int msecs = time * 1000.0;
   std::string text = cv::format("%02d:%02d:%02d.%03d", hours, minutes, secs, msecs);
   int baseline = 0;
-  cv::Size szOsd = cv::getTextSize(text, cv::FONT_HERSHEY_PLAIN, 2.0, 1, &baseline);
+  const double scale = 1.0;
+  cv::Size szOsd = cv::getTextSize(text, cv::FONT_HERSHEY_PLAIN, scale, 1, &baseline);
   cv::Mat osd(szOsd.height + baseline, szOsd.width, CV_8UC4, cv::Scalar::all(0));
-  cv::putText(osd, text, {0, osd.rows - baseline}, cv::FONT_HERSHEY_PLAIN, 2.0, cv::Scalar::all(255), 1);
+  cv::putText(osd, text, {0, osd.rows - baseline}, cv::FONT_HERSHEY_PLAIN, scale, cv::Scalar::all(255), 1);
 
   return osd;
 }
