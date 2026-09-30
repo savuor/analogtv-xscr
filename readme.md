@@ -55,9 +55,8 @@ _Note: these videos were built using ffmpeg like this:_
 
 ### TODO
 * keep desired FPS and resolve timing issues
-* resolve color issues: SMPTE bars do not correspond to pictures colors
 * use names for sources instead of numbers
-* drop extra params, do better resizing, refactor code, etc.
+* drop extra params, refactor code, etc.
 * add more params from existing, like different number of scanlines, etc.
 * send shrink pulse of desired timing by button/command
 * transform this code to a platform-independent shader-like filter

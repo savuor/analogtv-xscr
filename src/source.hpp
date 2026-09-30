@@ -11,8 +11,6 @@ namespace atv
 struct Source
 {
 public:
-  //TODO: create properties like it's done for channels, tv and receptions
-  //TODO: add it to GUI
   bool displayTimestamp = false;
   double vertUnderscan = 1.0;
   double horizUnderscan = 1.0;

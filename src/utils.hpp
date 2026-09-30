@@ -140,7 +140,6 @@ struct Properties : std::map<std::string, PropertyInfo>
     }
   }
 
-  //TODO: if not found, do not fail silently, throw a std::runtime_error exception
   std::pair<double, double> getRange(const std::string& param) const
   {
     auto it = this->find(param);

@@ -93,7 +93,6 @@ int main(int argc, char** argv)
     currentChannel = 0;
   }
 
-  //TODO: remove this ptr, use references to channels directly
   atv::ChanSetting* currentChannelPtr = &channels[currentChannel];
 
   atv::Knobs knobs = settings.knobs;
@@ -142,8 +141,6 @@ int main(int argc, char** argv)
         window.setChannel(*currentChannelPtr);
       }
     });
-
-  // TODO: find out how power up knob is actually used and do corresponding refactoring
 
   int frameCounter = 0, turnOnFrame = 0;
 

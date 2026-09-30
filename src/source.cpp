@@ -135,7 +135,6 @@ void BarsSource::update(AnalogInput& input, double time)
     //TODO: fix this by calculating xoff and yoff properly
     int xoff = (ANALOGTV_VIS_LEN - this->logoImg.cols) / 2;
     int yoff = (ANALOGTV_VISLINES - this->logoImg.rows) / 2;
-    //TODO: unify all calls to this function
     this->loadXImage(input, this->logoImg, this->logoMask, xoff, yoff);
   }
 
