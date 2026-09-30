@@ -27,7 +27,6 @@ void Source::finishFrame(AnalogInput& input, double time)
   {
     cv::Mat osd = drawTime(time);
     cv::Mat resizedOsd;
-    const double signalStretch = (double)ANALOGTV_VIS_LEN * (3.0 / 4.0) / ANALOGTV_VISLINES;
     const double scale = 1.0;
     cv::resize(osd, resizedOsd, cv::Size(), signalStretch * scale, scale, cv::INTER_LINEAR);
 
@@ -66,7 +65,6 @@ BarsSource::BarsSource(const cv::Mat& _logoImg) :
     return;
 
   // stretch image to signal resolution
-  const double signalStretch = (double)ANALOGTV_VIS_LEN * (3.0 / 4.0) / ANALOGTV_VISLINES;
   const double scale = 0.3;
   cv::resize(_logoImg, this->logoImg, cv::Size(), signalStretch * scale, scale, cv::INTER_LINEAR);
 
@@ -169,8 +167,6 @@ cv::Size fitSize(const cv::Size& imgSize, double vertUnderscan = 0.970, double h
   }
 
   // stretch image to signal resolution
-  const double signalStretch = (double)ANALOGTV_VIS_LEN * (3.0 / 4.0) / ANALOGTV_VISLINES;
-
   const int overscan = lineOverscan * ANALOGTV_SCALE; /* overscan this much top and bottom */
   const double overscanFactor = (double) ( ANALOGTV_VISLINES + 2 * overscan) / ANALOGTV_VISLINES;
 
@@ -377,8 +373,17 @@ void VideoSource::update(AnalogInput& input, double time)
   if (!ok || frame.empty())
   {
     prepared = cv::Mat(this->fittedSize, CV_8UC4, cv::Scalar(128, 64, 0));
-    cv::putText(prepared, "no frame :(", {120, this->fittedSize.height / 2},
-                cv::FONT_HERSHEY_SIMPLEX, 5.0, cv::Scalar::all(255), 6);
+    int baseline = 0;
+    double scale = 2.0;
+    std::string text = "no frame :(";
+    cv::Size szOsd = cv::getTextSize(text, cv::FONT_HERSHEY_PLAIN, scale, 1, &baseline);
+    cv::Mat osd(szOsd.height + baseline, szOsd.width, CV_8UC4, cv::Scalar(128, 64, 0));
+    cv::putText(osd, text, {0, osd.rows - baseline}, cv::FONT_HERSHEY_PLAIN, scale, cv::Scalar::all(255), 1);
+    cv::Mat resized;
+    cv::resize(osd, resized, {}, signalStretch, 1.0);
+    cv::Point textOrg((this->fittedSize.width  - resized.cols) / 2,
+                      (this->fittedSize.height - resized.rows) / 2);
+    resized.copyTo(prepared(cv::Rect(textOrg.x, textOrg.y, resized.cols, resized.rows)));
   }
   else
   {

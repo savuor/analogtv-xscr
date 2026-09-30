@@ -80,4 +80,7 @@ enum {
   ANALOGTV_MAX_LINEHEIGHT=12
 };
 
+// The horizontal signal stretch factor, used to scale from pixels to signal resolution
+const double signalStretch = (double)ANALOGTV_VIS_LEN * (3.0 / 4.0) / ANALOGTV_VISLINES;
+
 } // ::atv
