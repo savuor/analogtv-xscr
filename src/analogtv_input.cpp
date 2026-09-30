@@ -94,9 +94,12 @@ void AnalogInput::load_ximage(const cv::Mat4b& pic_im, const cv::Mat4b& mask_im,
 
     for (int y = starty; y < endy; y++)
     {
-        cv::Vec4b col1[ANALOGTV_PIC_LEN];
-        cv::Vec4b col2[ANALOGTV_PIC_LEN];
-        char mask[ANALOGTV_PIC_LEN];
+        // indexed by (x - startx): endx-startx never exceeds ANALOGTV_VIS_LEN (the visible screen
+        // width), whereas x itself is an unbounded image column and can overflow a PIC_LEN-sized buffer
+        // when xoff is very negative (e.g. an over-stretched, oversized source image)
+        cv::Vec4b col1[ANALOGTV_VIS_LEN];
+        cv::Vec4b col2[ANALOGTV_VIS_LEN];
+        char mask[ANALOGTV_VIS_LEN];
 
         const cv::Vec4b* rowIm1 = pic_im[y];
         const cv::Vec4b* rowIm2;
@@ -108,31 +111,33 @@ void AnalogInput::load_ximage(const cv::Mat4b& pic_im, const cv::Mat4b& mask_im,
         uint32_t* rowMask1 = mask_im.data ? (uint32_t*)(mask_im.data + y * mask_im.step) : nullptr;
         for (int x = startx; x < endx; x++)
         {
-            col1[x] = rowIm1[x];
+            int xi = x - startx;
+            col1[xi] = rowIm1[x];
             if (vertical_smoothing)
             {
-              col2[x] = rowIm2[x];
+              col2[xi] = rowIm2[x];
             }
             if (rowMask1)
-                mask[x] = (rowMask1[x] != 0);
+                mask[xi] = (rowMask1[x] != 0);
             else
-                mask[x] = 1;
+                mask[xi] = 1;
         }
 
-        int rowY[ANALOGTV_PIC_LEN];
-        int rowI[ANALOGTV_PIC_LEN];
-        int rowQ[ANALOGTV_PIC_LEN];
+        int rowY[ANALOGTV_VIS_LEN];
+        int rowI[ANALOGTV_VIS_LEN];
+        int rowQ[ANALOGTV_VIS_LEN];
         for (int x = startx; x < endx; x++)
         {
-            int r1 = col1[x][2];
-            int g1 = col1[x][1];
-            int b1 = col1[x][0];
+            int xi = x - startx;
+            int r1 = col1[xi][2];
+            int g1 = col1[xi][1];
+            int b1 = col1[xi][0];
             int r2, g2, b2;
             if (vertical_smoothing)
             {
-              r2 = col2[x][2];
-              g2 = col2[x][1];
-              b2 = col2[x][0];
+              r2 = col2[xi][2];
+              g2 = col2[xi][1];
+              b2 = col2[xi][0];
             }
 
             /* Compute YIQ as:
@@ -158,9 +163,9 @@ void AnalogInput::load_ximage(const cv::Mat4b& pic_im, const cv::Mat4b& mask_im,
               rawq = (( 3*r1 -  8*g1 + 5*b1) * 257) >> 6;
             }
 
-            rowY[x] = rawy;
-            rowI[x] = rawi;
-            rowQ[x] = rawq;
+            rowY[xi] = rawy;
+            rowI[xi] = rawi;
+            rowQ[xi] = rawq;
         }
 
         int fyx[7], fyy[7];
@@ -172,11 +177,12 @@ void AnalogInput::load_ximage(const cv::Mat4b& pic_im, const cv::Mat4b& mask_im,
         signed char* sigRow = this->sigMat[y + ANALOGTV_TOP + yoff];
         for (int x = startx; x < endx; x++)
         {
-            if (!mask[x]) continue;
+            int xi = x - startx;
+            if (!mask[xi]) continue;
 
-            int rawy = rowY[x];
-            int rawi = rowI[x];
-            int rawq = rowQ[x];
+            int rawy = rowY[xi];
+            int rawi = rowI[xi];
+            int rawq = rowQ[xi];
 
             int filty, filti, filtq;
             if (filter_enabled)
