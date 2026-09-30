@@ -6,7 +6,7 @@
     "autoOn": true,
     "startChannel": 0,
     "knobs": {
-        "tint": 185.0,
+        "tint": 5.0,
         "color": 0.7,
         "brightness": 0.02,
         "contrast": 1.5,
