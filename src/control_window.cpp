@@ -471,6 +471,7 @@ void ControlWindow::populateChannelSection(atv::ChanSetting& channel)
 
     addSourceControl("do_ssavi", row++);
     addSourceControl("do_cb", row++);
+    addSourceControl("displayTimestamp", row++);
     addSourceControl("vertUnderscan", row++);
     addSourceControl("horizUnderscan", row++);
     addSourceControl("lineOverscan", row++);
