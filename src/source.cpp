@@ -5,36 +5,41 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/videoio.hpp>
 
+//DEBUG
+#include <opencv2/highgui.hpp>
+
 namespace atv
 {
+
+void Source::setupSync(AnalogInput& input)
+{
+  input.setup_sync(this->do_cb, this->do_ssavi);
+}
+
+void Source::loadXImage(AnalogInput& input, const cv::Mat& img, const cv::Mat& mask, int xoff, int yoff)
+{
+  input.load_ximage(img, mask, xoff, yoff, this->filter_enabled, this->vertical_smoothing);
+}
+
+void Source::finishFrame(AnalogInput& input, double time)
+{
+  if (this->displayTimestamp)
+  {
+    cv::Mat osd = drawTime(time);
+    this->loadXImage(input, osd, cv::Mat4b(), 16, 16);
+  }
+
+  input.finish_frame();
+}
+
 
 static int barsSourceCount = 0;
 
 struct BarsSource : Source
 {
-  static const cv::Size defaultSize; // 320x240
+  BarsSource(const cv::Mat& _logoImg = { });
 
-  BarsSource(cv::Size _outSize) :
-    BarsSource(/*_logoImg*/ { }, _outSize, /*_displayTimestamp*/ false)
-  { }
-
-  BarsSource(const cv::Mat& _logoImg, bool _displayTimestamp = false) :
-    BarsSource(_logoImg, defaultSize, _displayTimestamp)
-  { }
-
-  BarsSource(const cv::Mat& _logoImg = { }, cv::Size _outSize = defaultSize, bool _displayTimestamp = false);
-
-  void update(AnalogInput& input, double time, bool do_ssavi, bool do_cb) override;
-
-  cv::Size getImageSize() override
-  {
-    return defaultSize;
-  }
-
-  void setOutSize(cv::Size _outSize) override
-  {
-    outSize = _outSize;
-  }
+  void update(AnalogInput& input, double time) override;
 
   std::string getName() const override
   {
@@ -42,22 +47,20 @@ struct BarsSource : Source
   }
 
   cv::Mat logoImg, logoMask;
-  bool displayTimestamp;
   int number;
 };
 
-const cv::Size BarsSource::defaultSize = cv::Size {320, 240};
 
-BarsSource::BarsSource(const cv::Mat& _logoImg, cv::Size _outSize, bool _displayTimestamp) :
+BarsSource::BarsSource(const cv::Mat& _logoImg) :
   Source()
 {
-  this->outSize = _outSize;
   this->logoImg = _logoImg;
-  this->displayTimestamp = _displayTimestamp;
   this->number = barsSourceCount++;
 
   if (_logoImg.empty())
     return;
+
+  //TODO: stretch logo image horizontally as it is done in ImageSource
 
   /* Pull the alpha out of the logo and make a separate mask ximage. */
   this->logoMask = cv::Mat(logoImg.size(), CV_8UC4, cv::Scalar(0));
@@ -69,7 +72,7 @@ BarsSource::BarsSource(const cv::Mat& _logoImg, cv::Size _outSize, bool _display
 }
 
 
-void BarsSource::update(AnalogInput& input, double time, bool do_ssavi, bool do_cb)
+void BarsSource::update(AnalogInput& input, double time)
 {
   // original name: update_smpte_colorbars()
 
@@ -98,7 +101,7 @@ void BarsSource::update(AnalogInput& input, double time, bool do_ssavi, bool do_
     {75, 0, 0.0}     /* gray */
   };
 
-  input.setup_sync(do_cb, do_ssavi);
+  this->setupSync(input);
 
   for (int col = 0; col < 7; col++)
   {
@@ -117,67 +120,67 @@ void BarsSource::update(AnalogInput& input, double time, bool do_ssavi, bool do_
                              mid_cb_table[col][2]);
   }
 
-  input.draw_solid_rel_lcp(      0.0,   1.0/6.0, 0.75, 1.00,   7, 40, 303);   /* -I       */
-  input.draw_solid_rel_lcp(  1.0/6.0,   2.0/6.0, 0.75, 1.00, 100,  0,   0);   /* white    */
-  input.draw_solid_rel_lcp(  2.0/6.0,   3.0/6.0, 0.75, 1.00,   7, 40,  33);   /* +Q       */
-  input.draw_solid_rel_lcp(  3.0/6.0,   4.0/6.0, 0.75, 1.00,   7,  0,   0);   /* black    */
-  input.draw_solid_rel_lcp(12.0/18.0, 13.0/18.0, 0.75, 1.00,   3,  0,   0);   /* black -4 */
-  input.draw_solid_rel_lcp(13.0/18.0, 14.0/18.0, 0.75, 1.00,   7,  0,   0);   /* black    */
-  input.draw_solid_rel_lcp(14.0/18.0, 15.0/18.0, 0.75, 1.00,  11,  0,   0);   /* black +4 */
-  input.draw_solid_rel_lcp(  5.0/6.0,   6.0/6.0, 0.75, 1.00,   7,  0,   0);   /* black    */
+  //                            left      right   top  bottom  luma  chroma  phase
+  input.draw_solid_rel_lcp(      0.0,   1.0/6.0, 0.75,   1.00,    7,     40,   303);   /* -I       */
+  input.draw_solid_rel_lcp(  1.0/6.0,   2.0/6.0, 0.75,   1.00,  100,      0,     0);   /* white    */
+  input.draw_solid_rel_lcp(  2.0/6.0,   3.0/6.0, 0.75,   1.00,    7,     40,    33);   /* +Q       */
+  input.draw_solid_rel_lcp(  3.0/6.0,   4.0/6.0, 0.75,   1.00,    7,      0,     0);   /* black    */
+  input.draw_solid_rel_lcp(12.0/18.0, 13.0/18.0, 0.75,   1.00,    3,      0,     0);   /* black -4 */
+  input.draw_solid_rel_lcp(13.0/18.0, 14.0/18.0, 0.75,   1.00,    7,      0,     0);   /* black    */
+  input.draw_solid_rel_lcp(14.0/18.0, 15.0/18.0, 0.75,   1.00,   11,      0,     0);   /* black +4 */
+  input.draw_solid_rel_lcp(  5.0/6.0,   6.0/6.0, 0.75,   1.00,    7,      0,     0);   /* black    */
 
   if (!this->logoImg.empty())
   {
-    int outw = this->outSize.width;
-    int outh = this->outSize.height;
-    double aspect = (double)outw / outh;
-    double scale = aspect > 1 ? 0.35 : 0.6;
-    int w2 = outw * scale;
-    int h2 = outh * scale * aspect;
-    int xoff = (outw - w2) / 2;
-    int yoff = outh * 0.20;
-    input.load_ximage(this->logoImg, this->logoMask, xoff, yoff, w2, h2, outw, outh);
+    //TODO: fix this by calculating xoff and yoff properly
+    int xoff = (ANALOGTV_VIS_LEN - this->logoImg.cols) / 2;
+    int yoff = (ANALOGTV_VISLINES - this->logoImg.rows) / 2;
+    //TODO: unify all calls to this function
+    this->loadXImage(input, this->logoImg, this->logoMask, xoff, yoff);
   }
 
-  if (this->displayTimestamp)
-  {
-    cv::Mat osd = drawTime(time);
-    input.load_ximage(osd, cv::Mat4b(), 240, 240, osd.cols, osd.rows, this->outSize.width, this->outSize.height);
-  }
-
-  input.finish_frame();
+  this->finishFrame(input, time);
 }
+
+
+cv::Size fitSize(const cv::Size& imgSize, double vertUnderscan = 0.970, double horizUnderscan = 0.815, int lineOverscan = 5)
+{
+  // here we change the original image resizing algorithm from XAnalogTV
+  // to avoid incorrect resampling and allow finer control over the image fitting
+
+  cv::Size outSize(ANALOGTV_VISLINES * 4 / 3, ANALOGTV_VISLINES);
+  cv::Size2d fittedSize;
+  double ro = (double) (4.0 / 3.0);
+  double ri = (double) imgSize.width / imgSize.height;
+  if (ro > ri)
+  {
+    fittedSize = { (double)outSize.height * ri, (double)outSize.height };
+  }
+  else
+  {
+    fittedSize = { (double)outSize.width, (double)outSize.width / ri };
+  }
+
+  // stretch image to signal resolution
+  const double signalStretch = (double)ANALOGTV_VIS_LEN * (3.0 / 4.0) / ANALOGTV_VISLINES;
+
+  const int overscan = lineOverscan * ANALOGTV_SCALE; /* overscan this much top and bottom */
+  const double overscanFactor = (double) ( ANALOGTV_VISLINES + 2 * overscan) / ANALOGTV_VISLINES;
+
+  fittedSize.width  = fittedSize.width * signalStretch * horizUnderscan;
+  fittedSize.height = fittedSize.height * vertUnderscan * overscanFactor;
+
+  return cv::Size(static_cast<int>(fittedSize.width), static_cast<int>(fittedSize.height));
+}
+
 
 static int imageSourceCount = 0;
 
 struct ImageSource : Source
 {
-  ImageSource() :
-    ImageSource(/*img*/ { }, /*outSize*/ { }, /*_displayTimestamp*/ false)
-  { }
+  ImageSource(const cv::Mat& _img = { });
 
-  ImageSource(const cv::Mat& _img, bool _displayTimestamp = false) :
-    ImageSource(_img, _img.size(), _displayTimestamp)
-  { }
-
-  ImageSource(const cv::Mat& _img, cv::Size _outSize, bool _displayTimestamp) :
-    Source(),
-    img(_img),
-    resizedImg(_img),
-    displayTimestamp(_displayTimestamp),
-    number(imageSourceCount++)
-  {
-    Source::outSize = _outSize;
-  }
-
-  cv::Size getImageSize() override
-  {
-    return img.size();
-  }
-
-  void setOutSize(cv::Size _outSize) override;
-
-  void update(AnalogInput& input, double time, bool do_ssavi, bool do_cb) override;
+  void update(AnalogInput& input, double time) override;
 
   std::string getName() const override
   {
@@ -186,58 +189,33 @@ struct ImageSource : Source
 
   cv::Mat img;
   cv::Mat resizedImg;
-  bool displayTimestamp;
+  cv::Point offset;
   int number;
 };
 
-void ImageSource::update(AnalogInput& input, double time, bool do_ssavi, bool do_cb)
+ImageSource::ImageSource(const cv::Mat& _img) :
+  Source(),
+  img(_img),
+  resizedImg(),
+  offset(),
+  number(imageSourceCount++)
 {
-  //TODO: do not update since last time
-  int w = this->resizedImg.cols * 0.815; /* underscan */
-  int h = this->resizedImg.rows * 0.970;
-  int x = (this->outSize.width  - w) / 2;
-  int y = (this->outSize.height - h) / 2;
+  cv::Size fittedSize = fitSize(this->img.size(), this->vertUnderscan, this->horizUnderscan, this->lineOverscan);
 
-  input.setup_sync(do_cb, do_ssavi);
+  this->offset.x = (ANALOGTV_VIS_LEN  - fittedSize.width) / 2;
+  this->offset.y = (ANALOGTV_VISLINES - fittedSize.height) / 2;
 
-  input.load_ximage(this->resizedImg, cv::Mat4b(), x, y, w, h, this->outSize.width, this->outSize.height);
-
-  if (this->displayTimestamp)
-  {
-    cv::Mat osd = drawTime(time);
-   input.load_ximage(osd, cv::Mat4b(), 240, 240, osd.cols, osd.rows, this->outSize.width, this->outSize.height);
-  }
-
-  input.finish_frame();
+  cv::resize(this->img, this->resizedImg, fittedSize, 0, 0, cv::INTER_LINEAR);
 }
 
 
-cv::Size fitSize(cv::Size imgSize, cv::Size outSize)
+void ImageSource::update(AnalogInput& input, double time)
 {
-  double r1 = (double) outSize.width / outSize.height;
-  double r2 = (double) imgSize.width / imgSize.height;
-  cv::Size sz;
-  if (r1 > r2)
-  {
-    sz = { (int)(outSize.height * r2), outSize.height };
-  }
-  else
-  {
-    sz = { outSize.width, (int)(outSize.width / r2) };
-  }
-  return sz;
-}
+  this->setupSync(input);
 
+  this->loadXImage(input, this->resizedImg, cv::Mat4b(), offset.x, offset.y);
 
-void ImageSource::setOutSize(cv::Size _outSize)
-{
-  outSize = _outSize;
-
-  if (resizedImg.size() != outSize)
-  {
-    cv::Size fs = fitSize(resizedImg.size(), outSize);
-    cv::resize(img, resizedImg, fs);
-  }
+  this->finishFrame(input, time);
 }
 
 
@@ -248,6 +226,7 @@ struct VideoSource : Source
     Source(),
     frameSize(),
     fittedSize(),
+    offset(),
     cap(),
     isCamera(false),
     videoFileName(0),
@@ -255,23 +234,15 @@ struct VideoSource : Source
     lastGrabTime(0),
     lastRetrieveTime(0),
     lastRetrievedFrame(),
-    fps(0),
-    displayTimestamp(false)
+    fps(0)
   { }
 
-  VideoSource(int nCam, bool showTimestamp = false);
-  VideoSource(const std::string& fileName, bool showTimestamp = false);
+  VideoSource(int nCam);
+  VideoSource(const std::string& fileName);
 
-  void init(bool showTimestamp);
+  void init();
 
-  void update(AnalogInput& input, double time, bool do_ssavi, bool do_cb) override;
-
-  cv::Size getImageSize() override
-  {
-    return frameSize;
-  }
-
-  void setOutSize(cv::Size size) override;
+  void update(AnalogInput& input, double time) override;
 
   std::string getName() const override
   {
@@ -279,6 +250,7 @@ struct VideoSource : Source
   }
 
   cv::Size frameSize, fittedSize;
+  cv::Point offset;
   cv::VideoCapture cap;
   // TODO: variant or so
   bool isCamera;
@@ -289,27 +261,28 @@ struct VideoSource : Source
   double lastRetrieveTime;
   cv::Mat lastRetrievedFrame;
   double fps;
-  bool displayTimestamp;
 };
 
 
-VideoSource::VideoSource(int nCam, bool showTimestamp)
+VideoSource::VideoSource(int nCam)
+  : Source()
 {
   nCamera = nCam;
   isCamera = true;
 
-  init(showTimestamp);
+  init();
 }
 
-VideoSource::VideoSource(const std::string& fileName, bool showTimestamp)
+VideoSource::VideoSource(const std::string& fileName)
+  : Source()
 {
   isCamera = false;
   videoFileName = fileName;
 
-  init(showTimestamp);
+  init();
 }
 
-void VideoSource::init(bool showTimestamp)
+void VideoSource::init()
 {
   bool ok = isCamera ? cap.open(nCamera) : cap.open(videoFileName);
 
@@ -323,7 +296,11 @@ void VideoSource::init(bool showTimestamp)
 
   this->frameSize = { (int)cap.get(cv::CAP_PROP_FRAME_WIDTH), (int)cap.get(cv::CAP_PROP_FRAME_HEIGHT)};
   this->fps = cap.get(cv::CAP_PROP_FPS);
-  this->fittedSize = this->frameSize;
+
+  this->fittedSize = fitSize(this->frameSize, this->vertUnderscan, this->horizUnderscan, this->lineOverscan);
+
+  this->offset.x = (ANALOGTV_VIS_LEN  - this->fittedSize.width) / 2;
+  this->offset.y = (ANALOGTV_VISLINES - this->fittedSize.height) / 2;
 
   Log::write(2, "reading from " + (isCamera ? ("cam #" + std::to_string(nCamera)) : videoFileName) + " " +
                 std::to_string(frameSize.width) + "x" + std::to_string(frameSize.height) + " " + std::to_string(this->fps) + " FPS");
@@ -331,23 +308,10 @@ void VideoSource::init(bool showTimestamp)
   this->lastGrabTime = -std::numeric_limits<double>::max();
   this->lastRetrieveTime = -std::numeric_limits<double>::max();
   this->lastRetrievedFrame = cv::Mat();
-
-  this->displayTimestamp = showTimestamp;
 }
 
 
-void VideoSource::setOutSize(cv::Size _outSize)
-{
-  outSize = _outSize;
-
-  if (fittedSize != outSize)
-  {
-    fittedSize = fitSize(frameSize, outSize);
-  }
-}
-
-
-void VideoSource::update(AnalogInput& input, double time, bool do_ssavi, bool do_cb)
+void VideoSource::update(AnalogInput& input, double time)
 {
   cv::Mat frame, prepared;
 
@@ -382,36 +346,25 @@ void VideoSource::update(AnalogInput& input, double time, bool do_ssavi, bool do
 
   if (!ok || frame.empty())
   {
-    prepared = cv::Mat(fittedSize, CV_8UC4, cv::Scalar(128, 64, 0));
-    cv::putText(prepared, "no frame :(", {120, fittedSize.height / 2},
+    prepared = cv::Mat(this->fittedSize, CV_8UC4, cv::Scalar(128, 64, 0));
+    cv::putText(prepared, "no frame :(", {120, this->fittedSize.height / 2},
                 cv::FONT_HERSHEY_SIMPLEX, 5.0, cv::Scalar::all(255), 6);
   }
   else
   {
     cv::Mat resized;
-    cv::resize(frame, resized, fittedSize);
+    cv::resize(frame, resized, this->fittedSize);
     std::vector<cv::Mat> ch;
     cv::split(resized, ch);
-    cv::Mat z = cv::Mat(fittedSize, CV_8UC1, cv::Scalar(0));
+    cv::Mat z = cv::Mat(this->fittedSize, CV_8UC1, cv::Scalar(0));
     cv::merge(std::vector<cv::Mat> {ch[0], ch[1], ch[2], z}, prepared);
   }
 
-  int w = fittedSize.width  * 0.815; /* underscan */
-  int h = fittedSize.height * 0.970;
-  int x = (this->outSize.width  - w) / 2;
-  int y = (this->outSize.height - h) / 2;
+  this->setupSync(input);
 
-  input.setup_sync(do_cb, do_ssavi);
+  this->loadXImage(input, prepared, cv::Mat4b(), offset.x, offset.y);
 
-  input.load_ximage(prepared, cv::Mat4b(), x, y, w, h, this->outSize.width, this->outSize.height);
-
-  if (displayTimestamp)
-  {
-    cv::Mat osd = drawTime(time);
-    input.load_ximage(osd, cv::Mat4b(), 240, 240, osd.cols, osd.rows, this->outSize.width, this->outSize.height);
-  }
-
-  input.finish_frame();
+  this->finishFrame(input, time);
 
   // for next frame
   if (retrieved)
@@ -436,8 +389,8 @@ std::shared_ptr<Source> Source::create(const nlohmann::json& j)
   }
 
   std::string type = j.value("type", "");
-  bool timestamp = j.value("timestamp", false);
 
+  std::shared_ptr<Source> src;
   if (type == "bars")
   {
     std::string logoPath = j.value("logo", "");
@@ -446,12 +399,12 @@ std::shared_ptr<Source> Source::create(const nlohmann::json& j)
     {
       logo = loadImage(logoPath);
     }
-    return std::make_shared<BarsSource>(logo, timestamp);
+    src = std::make_shared<BarsSource>(logo);
   }
   else if (type == "camera" || type == "cam")
   {
     int id = j.value("id", 0);
-    return std::make_shared<VideoSource>(id, timestamp);
+    src = std::make_shared<VideoSource>(id);
   }
   else if (type == "video")
   {
@@ -460,7 +413,7 @@ std::shared_ptr<Source> Source::create(const nlohmann::json& j)
     {
       throw std::runtime_error("Video source missing 'path' property");
     }
-    return std::make_shared<VideoSource>(path, timestamp);
+    src = std::make_shared<VideoSource>(path);
   }
   else if (type == "image")
   {
@@ -470,12 +423,20 @@ std::shared_ptr<Source> Source::create(const nlohmann::json& j)
       throw std::runtime_error("Image source missing 'path' property");
     }
     cv::Mat img = loadImage(path);
-    return std::make_shared<ImageSource>(img, timestamp);
+    src = std::make_shared<ImageSource>(img);
   }
   else
   {
     throw std::runtime_error("Unknown source type in JSON: " + type);
   }
+
+  for (const auto& s : {"vertUnderscan", "horizUnderscan", "lineOverscan", "filter_enabled",
+                        "vertical_smoothing", "do_ssavi", "do_cb"})
+  {
+    src->properties.setValue(s, j.value(s, src->properties.getDefault(s)));
+  }
+
+  return src;
 }
 
 std::shared_ptr<Source> Source::create(const atv::ParametricString& desc)
@@ -484,7 +445,6 @@ std::shared_ptr<Source> Source::create(const atv::ParametricString& desc)
 
   if (!desc.className.empty())
   {
-    bool timestamp = desc.kvArgs.count("timestamp") > 0;
     std::string arg = desc.varArgs[0];
 
     // should be like ":bars" or ":bars:/path/to/image:params"
@@ -495,29 +455,30 @@ std::shared_ptr<Source> Source::create(const atv::ParametricString& desc)
       {
         logo = loadImage(arg);
       }
-      src = std::make_shared<BarsSource>(logo, timestamp);
+      src = std::make_shared<BarsSource>(logo);
     }
     // should be like ":cam" or ":cam:number"
     else if (desc.className == "cam")
     {
       int nCam = arg.empty() ? 0 : parseInt(arg).value_or(0);
-      src = std::make_shared<VideoSource>(nCam, timestamp);
+      src = std::make_shared<VideoSource>(nCam);
     }
     // should be like ":video:/path/to/video:params"
     else if (desc.className == "video")
     {
-      src = std::make_shared<VideoSource>(arg, timestamp);
+      src = std::make_shared<VideoSource>(arg);
     }
     // should be like ":image:/path/to/image/:params"
     else if (desc.className == "image")
     {
       cv::Mat img = loadImage(arg);
-      src = std::make_shared<ImageSource>(img, timestamp);
+      src = std::make_shared<ImageSource>(img);
     }
     else
     {
         throw std::runtime_error("Unknown source type: " + desc.className);
     }
+    src->displayTimestamp = desc.kvArgs.count("timestamp") > 0;
   }
   else
   {

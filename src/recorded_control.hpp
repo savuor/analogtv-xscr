@@ -18,6 +18,15 @@ public:
   double getTime() override;
   double getFps() const override;
 
+  bool overrideSettings() const override
+  {
+    return true;
+  }
+
+  cv::Size getSize() const override;
+  std::vector<nlohmann::json> getSources() const override;
+  std::vector<nlohmann::json> getOutputs() const override;
+
 private:
   struct SequenceEntry
   {

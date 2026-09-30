@@ -10,21 +10,6 @@
 
 #include <QtWidgets/QApplication>
 
-static cv::Size getBestSize(const std::vector<std::shared_ptr<atv::Source>>& sources, cv::Size size)
-{
-  int maxw = 0, maxh = 0;
-  for (const auto& s : sources)
-  {
-    cv::Size sz = s->getImageSize();
-    maxw = std::max(maxw, sz.width);
-    maxh = std::max(maxh, sz.height);
-  }
-  cv::Size outSize = (size.empty()) ? cv::Size(maxw, maxh) : size;
-  outSize.width  &= ~1;
-  outSize.height &= ~1;
-  return outSize;
-}
-
 const double POWERDOWN_DURATION = 1.0;
 const double minBrightness = -1.5;
 
@@ -61,12 +46,15 @@ int main(int argc, char** argv)
     sources.push_back(atv::Source::create(s));
   }
 
-  cv::Size outSize = getBestSize(sources, settings.size);
+  cv::Size outSize = settings.size;
+  if (!outSize.width)
+    outSize.width = 640;
+  if (!outSize.height)
+    outSize.height = 480;
 
-  for (const auto& s : sources)
-  {
-    s->setOutSize(outSize);
-  }
+  // can't be odd
+  outSize.width &= ~1;
+  outSize.height &= ~1;
 
   // Build channels from config
   std::vector<atv::ChanSetting> channels;
@@ -78,12 +66,10 @@ int main(int argc, char** argv)
     for (const auto& recCfg : chCfg.receptions)
     {
       atv::AnalogReception rec;
-      rec.setValue("ofs",       recCfg.ofs);
-      rec.setValue("level",     recCfg.level);
-      rec.setValue("multipath", recCfg.multipath);
-      rec.setValue("freqerr",   recCfg.freqerr);
-      rec.setValue("do_ssavi", recCfg.do_ssavi);
-      rec.setValue("do_cb",    recCfg.do_cb);
+      rec.properties.setValue("ofs",       recCfg.ofs);
+      rec.properties.setValue("level",     recCfg.level);
+      rec.properties.setValue("multipath", recCfg.multipath);
+      rec.properties.setValue("freqerr",   recCfg.freqerr);
       ch.receptions.push_back(rec);
       ch.sources.push_back(sources.at(recCfg.sourceIndex));
     }
@@ -106,6 +92,8 @@ int main(int argc, char** argv)
   {
     currentChannel = 0;
   }
+
+  //TODO: remove this ptr, use references to channels directly
   atv::ChanSetting* currentChannelPtr = &channels[currentChannel];
 
   atv::Knobs knobs = settings.knobs;
@@ -115,25 +103,31 @@ int main(int argc, char** argv)
   QObject::connect(&window, &atv::ControlWindow::knobChanged,
     [&knobs](const QString& name, double value)
     {
-      knobs.setValue(name.toStdString(), value);
+      knobs.properties.setValue(name.toStdString(), value);
     });
 
   QObject::connect(&window, &atv::ControlWindow::chanParamChanged,
     [&currentChannelPtr](const QString& name, double value)
     {
-      currentChannelPtr->setValue(name.toStdString(), value);
+      currentChannelPtr->properties.setValue(name.toStdString(), value);
     });
 
   QObject::connect(&window, &atv::ControlWindow::receptionParamChanged,
     [&currentChannelPtr](int index, const QString& name, double value)
     {
-      currentChannelPtr->receptions.at(index).setValue(name.toStdString(), value);
+      currentChannelPtr->receptions.at(index).properties.setValue(name.toStdString(), value);
     });
 
   QObject::connect(&window, &atv::ControlWindow::receptionSourceChanged,
     [&currentChannelPtr, &sources](int index, int sourceIndex)
     {
       currentChannelPtr->sources.at(index) = sources.at(sourceIndex);
+    });
+
+  QObject::connect(&window, &atv::ControlWindow::sourceParamChanged,
+    [&currentChannelPtr](int index, const QString& name, double value)
+    {
+      currentChannelPtr->sources.at(index)->properties.setValue(name.toStdString(), value);
     });
 
   bool pendingChannelSwitch = false;
@@ -226,7 +220,7 @@ int main(int argc, char** argv)
       for (size_t i = 0; i < curChannel.receptions.size(); i++)
       {
         atv::AnalogReception& rec = curChannel.receptions[i];
-        curChannel.sources[i]->update(rec.input, curTime, rec.do_ssavi, rec.do_cb);
+        curChannel.sources[i]->update(rec.input, curTime);
         rec.update(rng);
       }
 

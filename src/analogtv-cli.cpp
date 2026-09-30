@@ -31,25 +31,6 @@ struct Params
 };
 
 
-cv::Size getBestSize(const std::vector<std::shared_ptr<atv::Source>>& sources, cv::Size size)
-{
-  // get best size
-  cv::Size outSize;
-  int maxw = 0, maxh = 0;
-  for (const auto& s : sources)
-  {
-    cv::Size sz = s->getImageSize();
-    maxw = std::max(maxw, sz.width);
-    maxh = std::max(maxh, sz.height);
-  }
-  outSize = (size.empty()) ? cv::Size(maxw, maxh) : size;
-  /* can't be odd */
-  outSize.width  &= ~1;
-  outSize.height &= ~1;
-
-  return outSize;
-}
-
 
 static void run(Params params)
 {
@@ -61,33 +42,68 @@ static void run(Params params)
   }
   cv::RNG rng(seed);
 
-  std::vector<std::shared_ptr<atv::Source>> sources;
-  for (const auto& s : params.sources)
+  std::shared_ptr<atv::Control> control = atv::Control::create(params.controlDescription);
+  control->setRNG(seed);
+
+  cv::Size outSize;
+  if (control->overrideSettings())
   {
-    sources.push_back(atv::Source::create(s));
+    outSize = control->getSize();
+  }
+  else
+  {
+    outSize = params.size;
+    if (!outSize.width)
+      outSize.width = 640;
+    if (!outSize.height)
+      outSize.height = 480;
+
+    // can't be odd
+    outSize.width &= ~1;
+    outSize.height &= ~1;
+  }
+
+  std::vector<std::shared_ptr<atv::Source>> sources;
+  if (control->overrideSettings())
+  {
+    std::vector<nlohmann::json> sourcesJson = control->getSources();
+    for (const auto& s : sourcesJson)
+    {
+      sources.push_back(atv::Source::create(s));
+    }
+  }
+  else
+  {
+    for (const auto& s : params.sources)
+    {
+      auto source = atv::Source::create(s);
+      source->do_ssavi = rng() % 20 == 0;
+      sources.push_back(source);
+    }
   }
 
   atv::Log::write(2, "initialized " + std::to_string(sources.size()) + " sources");
 
-  cv::Size outSize = getBestSize(sources, params.size);
-
-  for (const auto& s : sources)
-  {
-    s->setOutSize(outSize);
-  }
-
-  atv::SetTopBox tv(seed, outSize.width, outSize.height);
-
-  std::shared_ptr<atv::Control> control = atv::Control::create(params.controlDescription);
-  control->setRNG(seed);
-
   std::vector<std::shared_ptr<atv::Output>> outputs;
-  for (const auto& s : params.outputs)
+  if (control->overrideSettings())
   {
-    outputs.emplace_back(atv::Output::create(s, outSize, control->getFps()));
+    std::vector<nlohmann::json> outputsJson = control->getOutputs();
+    for (const auto& s : outputsJson)
+    {
+      outputs.emplace_back(atv::Output::create(s, outSize, control->getFps()));
+    }
+  }
+  else
+  {
+    for (const auto& s : params.outputs)
+    {
+      outputs.emplace_back(atv::Output::create(s, outSize, control->getFps()));
+    }
   }
 
   atv::Log::write(2, "initialized " + std::to_string(outputs.size()) + " outputs");
+
+  atv::SetTopBox tv(seed, outSize.width, outSize.height);
 
   control->createChannels(sources);
 
@@ -116,7 +132,7 @@ static void run(Params params)
     for (size_t i = 0; i < curChannel.receptions.size(); i++)
     {
       atv::AnalogReception& rec = curChannel.receptions[i];
-      curChannel.sources[i]->update(rec.input, curTime, rec.do_ssavi, rec.do_cb);
+      curChannel.sources[i]->update(rec.input, curTime);
       /* Noisy image */
       rec.update(rng);
     }
@@ -140,7 +156,7 @@ static const std::map<std::string, atv::CmdArgument> knownArgs =
     {"control",
       { "<file.json or param string>", atv::CmdArgument::Type::STRING, false,
         "control scenario file in JSON format or a parametric string specifying control type:\n"
-        "  * JSON file containing prescripted instructions, overriding all other command line arguments (not implemented yet)\n"
+        "  * JSON file containing prescripted instructions, overriding all other command line arguments\n"
         "  * :random is a random control with the following available parameters:\n"
         "    * duration: length of video in secs, 60 if not given\n"
         "    * powerup: if given, power-on animation is run at the beginning, and fade to black is done at the end\n"
@@ -154,12 +170,12 @@ static const std::map<std::string, atv::CmdArgument> knownArgs =
     {"size",
       { "width height", atv::CmdArgument::Type::LIST_INT, true,
         "use different size than maximum of given images\n"
-        "Note: if no size is given and the only source is SMPTE bars generator then the output source size will be 320x240" }},
+        "Note: if no size is given then the output source size will be 640x480" }},
     {"seed",
       { "value", atv::CmdArgument::Type::INT, true,
         "random seed to start random generator or 0 to randomize by current date and time" }},
     {"in",
-      { "src1 [src2 ... srcN]", atv::CmdArgument::Type::LIST_STRING, false,
+      { "src1 [src2 ... srcN]", atv::CmdArgument::Type::LIST_STRING, true,
         "signal sources such as still images, video files or special sources:\n"
         "  * Still image file name\n"
         "  * Video file name\n"
@@ -182,7 +198,7 @@ static const std::map<std::string, atv::CmdArgument> knownArgs =
         "    * timestamp: overlays timestamp over the image\n"
         "    Example video descriptions: \":image:/path/to/image\" \":image:/path/to/image:timestamp\"" }},
     {"out",
-      { "out1 [out2 ... outN]", atv::CmdArgument::Type::LIST_STRING, false,
+      { "out1 [out2 ... outN]", atv::CmdArgument::Type::LIST_STRING, true,
         "resulting picture sinks such as video files or window:\n"
         "  * Video file name\n"
         "  * :highgui means output to window using OpenCV HighGUI module, stable FPS is not guaranteed\n"
@@ -204,9 +220,12 @@ std::optional<Params> parseParams(int args, char** argv)
   }
 
   Params p;
-  p.sources  = std::get<std::vector<atv::ParametricString>>(usedArgs.at("in"));
-  p.outputs  = std::get<std::vector<atv::ParametricString>>(usedArgs.at("out"));
-  p.controlDescription = std::get<atv::ParametricString>(usedArgs.at("control"));
+  if (usedArgs.count("in"))
+    p.sources  = std::get<std::vector<atv::ParametricString>>(usedArgs.at("in"));
+  if (usedArgs.count("out"))
+    p.outputs  = std::get<std::vector<atv::ParametricString>>(usedArgs.at("out"));
+  if (usedArgs.count("control"))
+    p.controlDescription = std::get<atv::ParametricString>(usedArgs.at("control"));
 
   p.verbosity = 0;
   if (usedArgs.count("verbose"))

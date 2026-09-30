@@ -33,6 +33,7 @@ signals:
   void chanParamChanged(const QString& name, double value);
   void receptionParamChanged(int index, const QString& name, double value);
   void receptionSourceChanged(int index, int sourceIndex);
+  void sourceParamChanged(int index, const QString& name, double value);
   void channelSwitchRequested(int channelIndex);
   void powerToggled(bool isOn);
   void quitRequested();
@@ -42,8 +43,10 @@ protected:
 
 private:
   void populateChannelSection(atv::ChanSetting& channel);
-  void addRangedSliderKnob(const QString& title, double currentValue, double minV, double maxV,
-                            QWidget* groupBox, QGridLayout* grid, int row, std::function<void(double)> onChange);
+  // creates the appropriate GUI control (dial, slider, checkbox, spin box...) for a property,
+  // based on its ControlType, and wires it up to call onChange whenever the user edits it
+  void addPropertyControl(const atv::Properties& properties, const std::string& paramName,
+                           QWidget* parent, QGridLayout* grid, int row, std::function<void(double)> onChange);
   static void clearLayout(QLayout* layout);
 
   QGroupBox* channelGroupBox = nullptr;

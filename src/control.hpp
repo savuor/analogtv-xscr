@@ -15,8 +15,8 @@ struct ChanSetting
     receptions(),
     sources(),
     noise_level(0),
-    chanParams {
-      {"noise_level", {atv::ParamType::Double, 0.0, 5.0, 0.04, "Channel noise level", &noise_level}}
+    properties {
+      {"noise_level", {atv::PropertyType::Double, atv::ControlType::DoubleSpin, 0.0, 5.0, 0.04, "Channel noise level", &noise_level}}
     }
   { }
 
@@ -45,50 +45,7 @@ struct ChanSetting
   std::vector<std::shared_ptr<atv::Source>> sources;
   double noise_level; // noise: 0 to 0.2 or 0 to 5.0, default 0.04
 
-  std::map<std::string, ParamInfo> chanParams;
-
-  std::pair<double, double> getRange(const std::string& param) const
-  {
-    auto it = chanParams.find(param);
-    if (it != chanParams.end()) return {it->second.min, it->second.max};
-    return {0.0, 0.0};
-  }
-
-  std::string getDescription(const std::string& param) const
-  {
-    auto it = chanParams.find(param);
-    return (it != chanParams.end()) ? it->second.description : "";
-  }
-
-  double getValue(const std::string& param) const
-  {
-    auto it = chanParams.find(param);
-    if (it != chanParams.end() && it->second.value)
-    {
-      if (it->second.type == ParamType::Double)
-        return *(static_cast<double*>(it->second.value));
-      else if (it->second.type == ParamType::Bool)
-        return static_cast<bool>(*(static_cast<bool*>(it->second.value)));
-      else if (it->second.type == ParamType::Int)
-        return static_cast<int>(*(static_cast<int*>(it->second.value)));
-      else return 0.0;
-    }
-    else return 0.0;
-  }
-
-  void setValue(const std::string& param, double value)
-  {
-    auto it = chanParams.find(param);
-    if (it != chanParams.end() && it->second.value)
-    {
-      if (it->second.type == ParamType::Double)
-        *(static_cast<double*>(it->second.value)) = value;
-      else if (it->second.type == ParamType::Bool)
-        *(static_cast<bool*>(it->second.value)) = (std::abs(value) > std::numeric_limits<double>::epsilon());
-      else if (it->second.type == ParamType::Int)
-        *(static_cast<int*>(it->second.value)) = static_cast<int>(value);
-    }
-  }
+  const Properties properties;
 };
 
 struct Control
@@ -120,6 +77,14 @@ struct Control
   virtual double getTime() = 0;
 
   virtual double getFps() const = 0;
+
+  virtual bool overrideSettings() const = 0;
+
+  virtual cv::Size getSize() const = 0;
+
+  virtual std::vector<nlohmann::json> getSources() const = 0;
+
+  virtual std::vector<nlohmann::json> getOutputs() const = 0;
 
   std::vector<ChanSetting> chanSettings;
 };

@@ -82,11 +82,11 @@ void RecordedControl::applyKnobs(const nlohmann::json& values)
   {
     if (it.value().is_boolean())
     {
-      this->knobs.setValue(it.key(), it.value().get<bool>() ? 1.0 : 0.0);
+      this->knobs.properties.setValue(it.key(), it.value().get<bool>() ? 1.0 : 0.0);
     }
     else if (it.value().is_number())
     {
-      this->knobs.setValue(it.key(), it.value().get<double>());
+      this->knobs.properties.setValue(it.key(), it.value().get<double>());
     }
   }
 }
@@ -95,7 +95,7 @@ void RecordedControl::applyChannelSettings(int channel, const nlohmann::json& va
 {
   if (values.contains("noise_level"))
   {
-    this->chanSettings.at(channel).setValue("noise_level", values["noise_level"].get<double>());
+    this->chanSettings.at(channel).properties.setValue("noise_level", values["noise_level"].get<double>());
   }
 
   if (values.contains("receptions"))
@@ -121,7 +121,7 @@ void RecordedControl::applyChannelSettings(int channel, const nlohmann::json& va
       {
         if (it.value().is_number())
         {
-          receptions[i].setValue(it.key(), it.value().get<double>());
+          receptions[i].properties.setValue(it.key(), it.value().get<double>());
         }
       }
     }
@@ -153,7 +153,7 @@ void RecordedControl::createChannels(const std::vector<std::shared_ptr<atv::Sour
       {
         if (it.key() != "source" && it.value().is_number())
         {
-          rec.setValue(it.key(), it.value().get<double>());
+          rec.properties.setValue(it.key(), it.value().get<double>());
         }
       }
       channel.receptions.push_back(rec);
@@ -258,5 +258,45 @@ double RecordedControl::getFps() const
 {
   return this->fps;
 }
+
+cv::Size RecordedControl::getSize() const
+{
+  cv::Size sz(640, 480);
+  if (this->settings.contains("size"))
+  {
+    auto sizeJson = this->settings.value("size", nlohmann::json::object());
+    if (sizeJson.is_array())
+    {
+      sz.width = sizeJson[0];
+      sz.height = sizeJson[1];
+    }
+    else
+    {
+      throw std::runtime_error("Invalid size format in settings");
+    }
+  }
+  return sz;
+}
+
+std::vector<nlohmann::json> RecordedControl::getSources() const
+{
+  if (this->settings.contains("sources"))
+  {
+    return this->settings["sources"];
+  }
+  else
+    return {};
+}
+
+std::vector<nlohmann::json> RecordedControl::getOutputs() const
+{
+  if (this->settings.contains("outputs"))
+  {
+    return this->settings["outputs"];
+  }
+  else
+    return {};
+}
+
 
 } // ::atv

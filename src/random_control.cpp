@@ -66,7 +66,8 @@ void RandomControl::createChannels(const std::vector<std::shared_ptr<atv::Source
               because it doesn't matter otherwise */
             rec.freqerr = this->rng.uniform(-1.0, 1.0) * 3.0;
           }
-          rec.do_ssavi = this->rng() % 20 == 0;
+          // disabled, now do_ssavi should be set per source
+          //rec.do_ssavi = this->rng() % 20 == 0;
         }
 
         channelSetting.receptions.push_back(rec);

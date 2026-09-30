@@ -29,14 +29,14 @@ class QTintWidget : public QWidget
   Q_OBJECT
 
 public:
-  explicit QTintWidget(QWidget* parent = nullptr)
+  explicit QTintWidget(const QString& title, QWidget* parent = nullptr)
     : QWidget(parent)
   {
     v = 0.0;
 
     auto *layout = new QHBoxLayout(this);
 
-    label   = new QLabel("Tint", this);
+    label   = new QLabel(title, this);
     dial    = new QDial(this);
     spinBox = new QDoubleSpinBox(this);
 
@@ -227,37 +227,24 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
   makeCollapsible(colorGroupBox);
   QVBoxLayout* colorLayout = new QVBoxLayout(colorGroupBox);
 
-  QTintWidget* tintWidget = new QTintWidget(colorGroupBox);
-  tintWidget->setValue(knobs.tint);
-  connect(tintWidget, &QTintWidget::valueChanged, [this](double value)
-  {
-    emit knobChanged("tint", value);
-  });
-  colorLayout->addWidget(tintWidget);
-
   QGridLayout* colorGrid = new QGridLayout();
   colorGrid->setColumnStretch(1, 1); // slider column fills remaining space, keeping all sliders the same width
   colorLayout->addLayout(colorGrid);
 
-  auto addSliderKnob = [this, &knobs]( const std::string& paramName, 
-                                       QWidget* groupBox, QGridLayout* grid, int row)
+  auto addKnobControl = [this, &knobs](const std::string& paramName,
+                                        QWidget* groupBox, QGridLayout* grid, int row)
   {
-    const QString& title = QString::fromStdString(knobs.getDescription(paramName));
-    double currentValue = knobs.getValue(paramName);
-
-    SliderSpinboxKnob* knob = new SliderSpinboxKnob(title, groupBox, grid, row);
-    auto [minV, maxV] = knobs.getRange(paramName);
-    knob->setRange(minV, maxV);
-    knob->setValue(currentValue);
-    connect(knob, &SliderSpinboxKnob::valueChanged, [this, paramName](double value)
+    addPropertyControl(knobs.properties, paramName, groupBox, grid, row, [this, paramName](double value)
     {
       emit knobChanged(QString::fromStdString(paramName), value);
     });
   };
 
-  addSliderKnob("color",      colorGroupBox, colorGrid, 0);
-  addSliderKnob("brightness", colorGroupBox, colorGrid, 1);
-  addSliderKnob("contrast",   colorGroupBox, colorGrid, 2);
+  int colorRow = 0;
+  addKnobControl("tint",       colorGroupBox, colorGrid, colorRow++);
+  addKnobControl("color",      colorGroupBox, colorGrid, colorRow++);
+  addKnobControl("brightness", colorGroupBox, colorGrid, colorRow++);
+  addKnobControl("contrast",   colorGroupBox, colorGrid, colorRow++);
 
   layout->addWidget(colorGroupBox);
 
@@ -269,10 +256,11 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
   geometryGrid->setColumnStretch(1, 1); // slider column fills remaining space, keeping all sliders the same width
   geometryLayout->addLayout(geometryGrid);
 
-  addSliderKnob("width",         geometryGroupBox, geometryGrid, 0);
-  addSliderKnob("height",        geometryGroupBox, geometryGrid, 1);
-  addSliderKnob("squish",        geometryGroupBox, geometryGrid, 2);
-  addSliderKnob("squeezeBottom", geometryGroupBox, geometryGrid, 3);
+  int geometryRow = 0;
+  addKnobControl("width",         geometryGroupBox, geometryGrid, geometryRow++);
+  addKnobControl("height",        geometryGroupBox, geometryGrid, geometryRow++);
+  addKnobControl("squish",        geometryGroupBox, geometryGrid, geometryRow++);
+  addKnobControl("squeezeBottom", geometryGroupBox, geometryGrid, geometryRow++);
 
   layout->addWidget(geometryGroupBox);
 
@@ -284,44 +272,11 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
   miscGrid->setColumnStretch(1, 1); // slider column fills remaining space, keeping all sliders the same width
   miscLayout->addLayout(miscGrid);
 
-  addSliderKnob("horizontalDesync",  miscGroupBox, miscGrid, 1);
-
-  auto addCheckBox = [this, &knobs, miscGroupBox, miscLayout](const std::string& paramName, bool currentValue)
-  {
-    const QString& title = QString::fromStdString(knobs.getDescription(paramName));
-
-    QCheckBox* checkBox = new QCheckBox(title, miscGroupBox);
-    checkBox->setChecked(currentValue);
-#if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
-    connect(checkBox, &QCheckBox::checkStateChanged, [this, paramName](Qt::CheckState state)
-    {
-      emit knobChanged(QString::fromStdString(paramName), state == Qt::Checked ? 1.0 : 0.0);
-    });
-#else
-    connect(checkBox, &QCheckBox::stateChanged, [this, paramName](int state)
-    {
-      emit knobChanged(QString::fromStdString(paramName), state == Qt::Checked ? 1.0 : 0.0);
-    });
-#endif
-    miscLayout->addWidget(checkBox);
-  };
-
-  addCheckBox("useFlutterHorizontalDesync", knobs.useFlutterHorizontalDesync);
-  addSliderKnob("shrinkpulseProbability", miscGroupBox, miscGrid, 2);
-
-  QHBoxLayout* cyclesLayout = new QHBoxLayout();
-  QLabel* cyclesLabel = new QLabel(QString::fromStdString(knobs.getDescription("channelChangeCycles")), miscGroupBox);
-  QSpinBox* cyclesSpinBox = new QSpinBox(miscGroupBox);
-  auto [cyclesMin, cyclesMax] = knobs.getRange("channelChangeCycles");
-  cyclesSpinBox->setRange(static_cast<int>(cyclesMin), static_cast<int>(cyclesMax));
-  cyclesSpinBox->setValue(knobs.channelChangeCycles);
-  connect(cyclesSpinBox, &QSpinBox::valueChanged, [this](int value)
-  {
-    emit knobChanged("channelChangeCycles", value);
-  });
-  cyclesLayout->addWidget(cyclesLabel);
-  cyclesLayout->addWidget(cyclesSpinBox);
-  miscLayout->addLayout(cyclesLayout);
+  int miscRow = 0;
+  addKnobControl("useFlutterHorizontalDesync", miscGroupBox, miscGrid, miscRow++);
+  addKnobControl("horizontalDesync",           miscGroupBox, miscGrid, miscRow++);
+  addKnobControl("shrinkpulseProbability",     miscGroupBox, miscGrid, miscRow++);
+  addKnobControl("channelChangeCycles",        miscGroupBox, miscGrid, miscRow++);
 
   layout->addWidget(miscGroupBox);
 
@@ -380,13 +335,68 @@ void ControlWindow::clearLayout(QLayout* layoutToClear)
   }
 }
 
-void ControlWindow::addRangedSliderKnob(const QString& title, double currentValue, double minV, double maxV,
-                                         QWidget* groupBox, QGridLayout* grid, int row, std::function<void(double)> onChange)
+void ControlWindow::addPropertyControl(const atv::Properties& properties, const std::string& paramName,
+                                        QWidget* parent, QGridLayout* grid, int row, std::function<void(double)> onChange)
 {
-  SliderSpinboxKnob* knob = new SliderSpinboxKnob(title, groupBox, grid, row);
-  knob->setRange(minV, maxV);
-  knob->setValue(currentValue);
-  connect(knob, &SliderSpinboxKnob::valueChanged, onChange);
+  const QString title = QString::fromStdString(properties.getDescription(paramName));
+  double currentValue = properties.getValue(paramName);
+  auto [minV, maxV] = properties.getRange(paramName);
+
+  switch (properties.getControlType(paramName))
+  {
+    case atv::ControlType::Dial:
+    {
+      QTintWidget* dial = new QTintWidget(title, parent);
+      dial->setValue(currentValue);
+      connect(dial, &QTintWidget::valueChanged, onChange);
+      grid->addWidget(dial, row, 0, 1, 3);
+      break;
+    }
+
+    case atv::ControlType::CheckBox:
+    {
+      QCheckBox* checkBox = new QCheckBox(title, parent);
+      checkBox->setChecked(currentValue > std::numeric_limits<double>::epsilon());
+#if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
+      connect(checkBox, &QCheckBox::checkStateChanged, [onChange](Qt::CheckState state)
+      {
+        onChange(state == Qt::Checked ? 1.0 : 0.0);
+      });
+#else
+      connect(checkBox, &QCheckBox::stateChanged, [onChange](int state)
+      {
+        onChange(state == Qt::Checked ? 1.0 : 0.0);
+      });
+#endif
+      grid->addWidget(checkBox, row, 0, 1, 3);
+      break;
+    }
+
+    case atv::ControlType::IntSpin:
+    {
+      QLabel* label = new QLabel(title, parent);
+      QSpinBox* spinBox = new QSpinBox(parent);
+      spinBox->setRange(static_cast<int>(minV), static_cast<int>(maxV));
+      spinBox->setValue(static_cast<int>(currentValue));
+      connect(spinBox, &QSpinBox::valueChanged, [onChange](int value)
+      {
+        onChange(value);
+      });
+      grid->addWidget(label,   row, 0);
+      grid->addWidget(spinBox, row, 1, 1, 2);
+      break;
+    }
+
+    case atv::ControlType::DoubleSpin:
+    default:
+    {
+      SliderSpinboxKnob* knob = new SliderSpinboxKnob(title, parent, grid, row);
+      knob->setRange(minV, maxV);
+      knob->setValue(currentValue);
+      connect(knob, &SliderSpinboxKnob::valueChanged, onChange);
+      break;
+    }
+  }
 }
 
 void ControlWindow::populateChannelSection(atv::ChanSetting& channel)
@@ -397,11 +407,7 @@ void ControlWindow::populateChannelSection(atv::ChanSetting& channel)
   channelGrid->setColumnStretch(1, 1); // slider column fills remaining space, keeping all sliders the same width
   channelLayout->addLayout(channelGrid);
 
-  auto [noiseMin, noiseMax] = channel.getRange("noise_level");
-  const QString& noiseTitle = QString::fromStdString(channel.getDescription("noise_level"));
-  double noiseCurrentValue = channel.getValue("noise_level");
-
-  addRangedSliderKnob(noiseTitle, noiseCurrentValue, noiseMin, noiseMax, channelGroupBox, channelGrid, 0,
+  addPropertyControl(channel.properties, "noise_level", channelGroupBox, channelGrid, 0,
     [this](double value)
     {
       emit chanParamChanged("noise_level", value);
@@ -436,47 +442,40 @@ void ControlWindow::populateChannelSection(atv::ChanSetting& channel)
     recGrid->setColumnStretch(1, 1);
     tabLayout->addLayout(recGrid);
 
-    auto addReceptionSlider = [this, &rec, tab, recGrid, index](const std::string& paramName, int row)
+    auto addReceptionControl = [this, &rec, tab, recGrid, index](const std::string& paramName, int row)
     {
-      const QString& title = QString::fromStdString(rec.getDescription(paramName));
-      double currentValue = rec.getValue(paramName);
-
-      double minV = rec.getRange(paramName).first;
-      double maxV = rec.getRange(paramName).second;
-
-      addRangedSliderKnob(title, currentValue, minV, maxV, tab, recGrid, row, [this, index, paramName](double value)
+      addPropertyControl(rec.properties, paramName, tab, recGrid, row, [this, index, paramName](double value)
       {
         emit receptionParamChanged(index, QString::fromStdString(paramName), value);
       });
     };
 
-    addReceptionSlider("level", 0);
+    int row = 0;
+    addReceptionControl("level", row++);
+    addReceptionControl("multipath", row++);
+    addReceptionControl("ofs", row++);
+    addReceptionControl("freqerr", row++);
+    addReceptionControl("hfloss_enable", row++);
 
-    addReceptionSlider("multipath", 1);
+    recGrid->addWidget(new QLabel("Source properties:", tab), row++, 0, 1, 2);
 
-    addReceptionSlider("ofs", 2);
-
-    addReceptionSlider("freqerr", 3);
-
-    auto addReceptionCheckBox = [this, &rec, tab, recGrid, index](const std::string& paramName, int row)
+    // these belong to the currently selected source, not to the reception itself
+    std::shared_ptr<atv::Source> source = channel.sources[i];
+    auto addSourceControl = [this, source, tab, recGrid, index](const std::string& paramName, int controlRow)
     {
-      const QString& title = QString::fromStdString(rec.getDescription(paramName));
-      bool currentValue = std::abs(rec.getValue(paramName)) > std::numeric_limits<double>::epsilon();
-
-      QCheckBox* checkBox = new QCheckBox(title, tab);
-      checkBox->setChecked(currentValue);
-      connect(checkBox, &QCheckBox::toggled, [this, index, paramName](bool checked)
+      addPropertyControl(source->properties, paramName, tab, recGrid, controlRow, [this, index, paramName](double value)
       {
-        emit receptionParamChanged(index, QString::fromStdString(paramName), checked ? 1.0 : 0.0);
+        emit sourceParamChanged(index, QString::fromStdString(paramName), value);
       });
-      recGrid->addWidget(checkBox, row, 0, 1, 2);
     };
 
-    addReceptionCheckBox("do_ssavi", 4);
-
-    addReceptionCheckBox("do_cb", 5);
-
-    addReceptionCheckBox("hfloss_enable", 6);
+    addSourceControl("do_ssavi", row++);
+    addSourceControl("do_cb", row++);
+    addSourceControl("vertUnderscan", row++);
+    addSourceControl("horizUnderscan", row++);
+    addSourceControl("lineOverscan", row++);
+    addSourceControl("filter_enabled", row++);
+    addSourceControl("vertical_smoothing", row++);
 
     receptionsTabs->addTab(tab, QString("Reception %1").arg(index));
   }

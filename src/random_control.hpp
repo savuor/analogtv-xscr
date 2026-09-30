@@ -29,6 +29,28 @@ struct RandomControl : public Control
     this->rng = cv::RNG(rngSeed);
   }
 
+
+  bool overrideSettings() const override
+  {
+    return false;
+  }
+
+  // not used, returns a default size
+  cv::Size getSize() const override
+  {
+    return cv::Size(640, 480);
+  }
+
+  std::vector<nlohmann::json> getSources() const override
+  {
+    return {};
+  }
+
+  std::vector<nlohmann::json> getOutputs() const override
+  {
+    return {};
+  }
+
   // why const ref to sources does not work?
   void createChannels(const std::vector<std::shared_ptr<atv::Source>> sources) override;
 

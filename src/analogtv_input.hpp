@@ -31,8 +31,8 @@ struct AnalogInput
                           double top, double bot,
                           double luma, double chroma, double phase);
 
-  void load_ximage(const cv::Mat4b& pic_im, const cv::Mat4b& mask_im,
-                   int xoff, int yoff, int target_w, int target_h, int out_w, int out_h);
+  void load_ximage(const cv::Mat4b& pic_im, const cv::Mat4b& mask_im, int xoff, int yoff,
+                   bool filter_enabled = true, bool vertical_smoothing = true );
 
   void finish_frame();
 };

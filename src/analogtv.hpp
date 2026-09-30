@@ -20,22 +20,6 @@
 namespace atv
 {
 
-enum class ParamType
-{
-  Double,
-  Bool,
-  Int
-};
-
-struct ParamInfo
-{
-  ParamType type;
-  double min;
-  double max;
-  double defaultValue;
-  std::string description;
-  void* value;
-};
 
 struct AnalogReception
 {
@@ -45,8 +29,6 @@ struct AnalogReception
   double level;     // 0.05 to 2.0, default 0.3
   double multipath; // 0.0 to 1.0, default 0.0
   double freqerr;   // -3.0 to 3.0, default 0.0, only for ghosting stations
-  bool do_ssavi;   // whether to apply SSAVI, default false
-  bool do_cb;      // whether to apply color burst, default true
   bool hfloss_enable; // whether to enable hfloss, default false (high-frequency loss???)
 
   double ghostfir[ANALOGTV_GHOSTFIR_LEN];
@@ -59,38 +41,27 @@ struct AnalogReception
 
   void update(cv::RNG& rng);
 
-  const std::map<std::string, ParamInfo> paramInfos;
+  const Properties properties;
 
 public:
   AnalogReception()
     : ofs(), level(), multipath(), freqerr(),
-      do_ssavi(),
-      do_cb(),
       hfloss_enable(),
       hfloss(), hfloss2(),
-      paramInfos()
+      properties({
+      //            data type                 gui type   min                      max  default          description   pointer
+      {"ofs",
+        {   PropertyType::Int, ControlType::DoubleSpin,  0.0, ANALOGTV_SIGNAL_LEN-1.0,     0.0,             "Offset in samples",           &ofs}},
+      {"level",
+        {PropertyType::Double, ControlType::DoubleSpin, 0.01,                     2.0,     0.3,                  "Signal level",         &level}},
+      {"multipath",
+        {PropertyType::Double, ControlType::DoubleSpin,  0.0,                     1.0,     0.0,                     "Multipath",     &multipath}},
+      {"freqerr",
+        {PropertyType::Double, ControlType::DoubleSpin, -3.0,                     3.0,     0.0,               "Frequency error",       &freqerr}},
+      {"hfloss_enable",
+        {  PropertyType::Bool, ControlType::CheckBox,    0.0,                     1.0,     0.0, "Enable hfloss (for multipath)", &hfloss_enable}},
+    })
   {
-    const_cast<std::map<std::string, ParamInfo>&>(paramInfos) = {
-      //                        type     min                           max   default   description                     pointer
-      {"ofs",           {ParamType::Double,  0.0 , ANALOGTV_SIGNAL_LEN-1.0,      0.0, "Offset in samples",             &ofs}},
-      {"level",         {ParamType::Double,  0.05,                     2.0,      0.3, "Signal level",                  &level}},
-      {"multipath",     {ParamType::Double,  0.0 ,                     1.0,      0.0, "Multipath",                     &multipath}},
-      {"freqerr",       {ParamType::Double, -3.0 ,                     3.0,      0.0, "Frequency error",               &freqerr}},
-      {"do_ssavi",      {ParamType::Bool,    0.0 ,                     1.0,      0.0, "Apply SSAVI",                   &do_ssavi}},
-      {"do_cb",         {ParamType::Bool,    0.0 ,                     1.0,      1.0, "Apply color burst",             &do_cb}},
-      {"hfloss_enable", {ParamType::Bool,    0.0 ,                     1.0,      0.0, "Enable hfloss (for multipath)", &hfloss_enable}},
-    };
-    
-    for (const auto& p : paramInfos)
-    {
-      if (p.second.type == ParamType::Double)
-        *(static_cast<double*>(p.second.value)) = p.second.defaultValue;
-      else if (p.second.type == ParamType::Bool)
-        *(static_cast<bool*>(p.second.value)) = (std::abs(p.second.defaultValue) > std::numeric_limits<double>::epsilon());
-      else if (p.second.type == ParamType::Int)
-        *(static_cast<int*>(p.second.value)) = static_cast<int>(p.second.defaultValue);
-    }
-
     std::fill_n(ghostfir, ANALOGTV_GHOSTFIR_LEN, 0.0);
     std::fill_n(ghostfir2, ANALOGTV_GHOSTFIR_LEN, 0.0);
   }
@@ -103,8 +74,6 @@ public:
       level = other.level;
       multipath = other.multipath;
       freqerr = other.freqerr;
-      do_ssavi = other.do_ssavi;
-      do_cb = other.do_cb;
       hfloss_enable = other.hfloss_enable;
       hfloss = other.hfloss;
       hfloss2 = other.hfloss2;
@@ -119,55 +88,6 @@ public:
       : AnalogReception()
   {
     *this = other;
-  }
-
-  std::pair<double, double> getRange(const std::string& param) const
-  {
-    auto it = paramInfos.find(param);
-    if (it != paramInfos.end()) return {it->second.min, it->second.max};
-    return {0.0, 0.0};
-  }
-
-  double getDefault(const std::string& param) const
-  {
-    auto it = paramInfos.find(param);
-    return it != paramInfos.end() ? it->second.defaultValue : 0.0;
-  }
-
-  std::string getDescription(const std::string& param) const
-  {
-    auto it = paramInfos.find(param);
-    return it != paramInfos.end() ? it->second.description : "";
-  }
-
-  void setValue(const std::string& param, double value)
-  {
-    auto it = paramInfos.find(param);
-    if (it != paramInfos.end() && it->second.value)
-    {
-      if (it->second.type == ParamType::Double)
-        *(static_cast<double*>(it->second.value)) = value;
-      else if (it->second.type == ParamType::Bool)
-        *(static_cast<bool*>(it->second.value)) = (std::abs(value) > std::numeric_limits<double>::epsilon());
-      else if (it->second.type == ParamType::Int)
-        *(static_cast<int*>(it->second.value)) = static_cast<int>(value);
-    }
-  }
-
-  double getValue(const std::string& param) const
-  {
-    auto it = paramInfos.find(param);
-    if (it != paramInfos.end() && it->second.value)
-    {
-      if (it->second.type == ParamType::Double)
-        return *(static_cast<double*>(it->second.value));
-      else if (it->second.type == ParamType::Bool)
-        return static_cast<bool>(*(static_cast<bool*>(it->second.value)));
-      else if (it->second.type == ParamType::Int)
-        return static_cast<int>(*(static_cast<int*>(it->second.value)));
-      else return 0.0;
-    }
-    else return 0.0;
   }
 };
 
@@ -192,9 +112,8 @@ struct Knobs
 
   int channelChangeCycles; // default 200000, number of cycles to change channel
 
-  const std::map<std::string, ParamInfo> paramInfos;
+  const Properties properties;
 
-  //TODO: check all these ranges
   Knobs()
     : timeSinceStart(0.0), brightness(1.5), tint(5.0), color(0.7), contrast(1.5),
       height(1.0), width(1.0), squish(0.0),
@@ -202,28 +121,36 @@ struct Knobs
       horizontalDesync(0.0), squeezeBottom(0.0),
       useFlutterHorizontalDesync(false),
       channelChangeCycles(200000),
-      paramInfos {
-        //                                        type       min         max     default  description                     pointer
-        {"timeSinceStart",             {ParamType::Double,   0.0,     1000.0,       0.0, "Time since start, seconds",     &timeSinceStart}},
-        {"brightness",                 {ParamType::Double, -0.75,        1.0,       1.5, "Brightness",                    &brightness}},
-        {"tint",                       {ParamType::Double,   0.0,      360.0,       5.0, "Tint",                          &tint}},
-        {"color",                      {ParamType::Double,   0.0,        5.0,       0.7, "Color",                         &color}},
-        {"contrast",                   {ParamType::Double,   0.0,        5.0,       1.5, "Contrast",                      &contrast}},
-        {"height",                     {ParamType::Double,   0.5,        2.0,       1.0, "Height",                        &height}},
-        {"width",                      {ParamType::Double,   0.5,        2.0,       1.0, "Width",                         &width}},
-        {"squish",                     {ParamType::Double,   0.0,        1.0,       0.0, "Squish",                        &squish}},
-        {"shrinkpulseProbability",     {ParamType::Double,   0.0,        1.0,       0.01, "Shrink pulse probability",     &shrinkpulseProbability}},
-        {"horizontalDesync",           {ParamType::Double,  -5.0,        5.0,       0.0, "Horizontal desync",             &horizontalDesync}},
-        {"squeezeBottom",              {ParamType::Double,  -1.0,        4.0,       0.0, "Squeeze bottom",                &squeezeBottom}},
-        {"useFlutterHorizontalDesync", {ParamType::Bool,     0.0,        1.0,       0.0, "Use flutter horizontal desync", &useFlutterHorizontalDesync}},
-        {"channelChangeCycles",        {ParamType::Int,      0.0, 1000'000.0, 200'000.0, "Channel change cycles",         &channelChangeCycles}}
-      }
-  {
-    for (const auto& p : paramInfos)
-    {
-      this->setValue(p.first, p.second.defaultValue);
-    }
-  }
+      properties({
+        //            data type         GUI control type    min         max     default  description                     pointer
+        {"timeSinceStart",
+          {PropertyType::Double, ControlType::DoubleSpin,   0.0,     1000.0,       0.0, "Time since start, seconds",     &timeSinceStart}},
+        {"brightness",
+          {PropertyType::Double, ControlType::DoubleSpin, -0.75,        1.0,       1.5, "Brightness",                    &brightness}},
+        {"tint",
+          {PropertyType::Double, ControlType::Dial,         0.0,      360.0,       5.0, "Tint",                          &tint}},
+        {"color",
+          {PropertyType::Double, ControlType::DoubleSpin,   0.0,        5.0,       0.7, "Color",                         &color}},
+        {"contrast",
+          {PropertyType::Double, ControlType::DoubleSpin,   0.0,        5.0,       1.5, "Contrast",                      &contrast}},
+        {"height",
+          {PropertyType::Double, ControlType::DoubleSpin,   0.5,        2.0,       1.0, "Height",                        &height}},
+        {"width",
+          {PropertyType::Double, ControlType::DoubleSpin,   0.5,        2.0,       1.0, "Width",                         &width}},
+        {"squish",
+          {PropertyType::Double, ControlType::DoubleSpin,   0.0,        1.0,       0.0, "Squish",                        &squish}},
+        {"shrinkpulseProbability",
+          {PropertyType::Double, ControlType::DoubleSpin,   0.0,        1.0,       0.01, "Shrink pulse probability",     &shrinkpulseProbability}},
+        {"horizontalDesync",
+          {PropertyType::Double, ControlType::DoubleSpin,  -5.0,        5.0,       0.0, "Horizontal desync",             &horizontalDesync}},
+        {"squeezeBottom",
+          {PropertyType::Double, ControlType::DoubleSpin,  -1.0,        4.0,       0.0, "Squeeze bottom",                &squeezeBottom}},
+        {"useFlutterHorizontalDesync",
+          {PropertyType::Bool,   ControlType::CheckBox,     0.0,        1.0,       0.0, "Use flutter horizontal desync", &useFlutterHorizontalDesync}},
+        {"channelChangeCycles",
+          {PropertyType::Int,    ControlType::IntSpin,      0.0, 1000'000.0, 200'000.0, "Channel change cycles",         &channelChangeCycles}}
+      })
+  { }
 
   Knobs(const Knobs& other)
     : Knobs()
@@ -250,73 +177,6 @@ struct Knobs
       channelChangeCycles = other.channelChangeCycles;
     }
     return *this;
-  }
-
-  std::pair<double, double> getRange(const std::string& param) const
-  {
-    auto it = paramInfos.find(param);
-    if (it != paramInfos.end()) return {it->second.min, it->second.max};
-    return {0.0, 0.0};
-  }
-
-  double getDefault(const std::string& param) const
-  {
-    auto it = paramInfos.find(param);
-    if (it != paramInfos.end()) return it->second.defaultValue;
-    else return 0.0;
-  }
-
-  std::string getDescription(const std::string& param) const
-  {
-    auto it = paramInfos.find(param);
-    return (it != paramInfos.end()) ? it->second.description : "";
-  }
-
-  ParamType getType(const std::string& param) const
-  {
-    auto it = paramInfos.find(param);
-    if (it != paramInfos.end()) return it->second.type;
-    else return ParamType::Double;
-  }
-
-  void setValue(const std::string& param, double value)
-  {
-    auto it = paramInfos.find(param);
-    if (it != paramInfos.end() && it->second.value)
-    {
-      switch (it->second.type)
-      {
-        case ParamType::Double:
-          *static_cast<double*>(it->second.value) = value;
-          break;
-        case ParamType::Bool:
-          *static_cast<bool*>(it->second.value) = (std::abs(value) > std::numeric_limits<double>::epsilon());
-          break;
-        case ParamType::Int:
-          *static_cast<int*>(it->second.value) = static_cast<int>(value);
-          break;
-      }
-    }
-  }
-
-  double getValue(const std::string& param) const
-  {
-    auto it = paramInfos.find(param);
-    if (it != paramInfos.end() && it->second.value)
-    {
-      switch (it->second.type)
-      {
-        case ParamType::Double:
-          return *static_cast<double*>(it->second.value);
-        case ParamType::Bool:
-          return static_cast<bool>(*(static_cast<bool*>(it->second.value)));
-        case ParamType::Int:
-          return static_cast<int>(*(static_cast<int*>(it->second.value)));
-        default:
-          return 0.0;
-      }
-    }
-    return 0.0;
   }
 };
 
