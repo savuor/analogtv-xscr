@@ -12,6 +12,7 @@ class QGroupBox;
 class QVBoxLayout;
 class QGridLayout;
 class QLayout;
+class QWidget;
 
 namespace atv
 {
@@ -50,6 +51,7 @@ private:
   static void clearLayout(QLayout* layout);
 
   QGroupBox* channelGroupBox = nullptr;
+  QWidget* channelContentWidget = nullptr;
   QVBoxLayout* channelLayout = nullptr;
   const std::vector<std::shared_ptr<atv::Source>>* allSources = nullptr;
 };

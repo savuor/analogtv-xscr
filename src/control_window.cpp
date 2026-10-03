@@ -11,6 +11,7 @@
 #include <QtWidgets/QHBoxLayout>
 #include <QtWidgets/QLabel>
 #include <QtWidgets/QPushButton>
+#include <QtWidgets/QScrollArea>
 #include <QtWidgets/QSlider>
 #include <QtWidgets/QSpinBox>
 #include <QtWidgets/QTabWidget>
@@ -18,6 +19,9 @@
 #include <QtWidgets/QWidget>
 
 #include <QtGui/QCloseEvent>
+#include <QtGui/QMouseEvent>
+#include <QtWidgets/QStyle>
+#include <QtWidgets/QStyleOption>
 #include <QtCore/qglobal.h>
 #include <QtCore/qmetatype.h>
 
@@ -181,20 +185,66 @@ private:
 };
 
 
-// makes a QGroupBox checkable and collapses/expands its contents (but keeps the title bar) on toggle
-static void makeCollapsible(QGroupBox* box)
+// A group box whose title toggles the visibility of its contents.
+class CollapsibleGroupBox : public QGroupBox
 {
-  box->setCheckable(true);
-  box->setChecked(true);
-  QObject::connect(box, &QGroupBox::toggled, [box](bool expanded)
+  Q_OBJECT
+
+public:
+  explicit CollapsibleGroupBox(const QString& title, QWidget* parent = nullptr)
+    : QGroupBox(title, parent), originalTitle(title)
   {
-    for (QObject* child : box->children())
+    auto* groupLayout = new QVBoxLayout(this);
+    content = new QWidget(this);
+    groupLayout->addWidget(content);
+    updateTitle();
+  }
+
+  QWidget* contentWidget() const
+  {
+    return content;
+  }
+
+protected:
+  void mousePressEvent(QMouseEvent* event) override
+  {
+    titlePressed = titleRect().contains(event->pos());
+    QGroupBox::mousePressEvent(event);
+  }
+
+  void mouseReleaseEvent(QMouseEvent* event) override
+  {
+    if (titlePressed && titleRect().contains(event->pos()))
     {
-      if (QWidget* widget = qobject_cast<QWidget*>(child))
-        widget->setVisible(expanded);
+      expanded = !expanded;
+      updateTitle();
+      content->setVisible(expanded);
     }
-  });
-}
+
+    titlePressed = false;
+    QGroupBox::mouseReleaseEvent(event);
+  }
+
+private:
+  QRect titleRect() const
+  {
+    QStyleOptionGroupBox option;
+    option.initFrom(this);
+    option.text = title();
+    return style()->subControlRect(QStyle::CC_GroupBox, &option,
+                                   QStyle::SC_GroupBoxLabel, this);
+  }
+
+  void updateTitle()
+  {
+    setTitle(QString(expanded ? "[-] " : "[+] ") + originalTitle);
+  }
+
+  QString originalTitle;
+  QWidget* content = nullptr;
+  bool expanded = true;
+  bool titlePressed = false;
+};
 
 
 ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
@@ -203,10 +253,14 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
   : QMainWindow(parent)
 {
   setWindowTitle("AnalogTV Control");
-  resize(200, 100);
+  resize(450, 400);
 
-  QWidget* centralWidget = new QWidget(this);
-  setCentralWidget(centralWidget);
+  QScrollArea* scrollArea = new QScrollArea(this);
+  scrollArea->setWidgetResizable(true);
+  setCentralWidget(scrollArea);
+
+  QWidget* centralWidget = new QWidget(scrollArea);
+  scrollArea->setWidget(centralWidget);
 
   QVBoxLayout* layout = new QVBoxLayout(centralWidget);
 
@@ -223,9 +277,9 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
 
   powerButton->setChecked(autoOn);
 
-  QGroupBox* colorGroupBox = new QGroupBox("Color", centralWidget);
-  makeCollapsible(colorGroupBox);
-  QVBoxLayout* colorLayout = new QVBoxLayout(colorGroupBox);
+  QGroupBox* colorGroupBox = new CollapsibleGroupBox("Color", centralWidget);
+  QWidget* colorContent = static_cast<CollapsibleGroupBox*>(colorGroupBox)->contentWidget();
+  QVBoxLayout* colorLayout = new QVBoxLayout(colorContent);
 
   QGridLayout* colorGrid = new QGridLayout();
   colorGrid->setColumnStretch(1, 1); // slider column fills remaining space, keeping all sliders the same width
@@ -241,62 +295,64 @@ ControlWindow::ControlWindow(atv::Knobs& knobs, atv::ChanSetting& channel,
   };
 
   int colorRow = 0;
-  addKnobControl("tint",       colorGroupBox, colorGrid, colorRow++);
-  addKnobControl("color",      colorGroupBox, colorGrid, colorRow++);
-  addKnobControl("brightness", colorGroupBox, colorGrid, colorRow++);
-  addKnobControl("contrast",   colorGroupBox, colorGrid, colorRow++);
+  addKnobControl("tint",       colorContent, colorGrid, colorRow++);
+  addKnobControl("color",      colorContent, colorGrid, colorRow++);
+  addKnobControl("brightness", colorContent, colorGrid, colorRow++);
+  addKnobControl("contrast",   colorContent, colorGrid, colorRow++);
 
   layout->addWidget(colorGroupBox);
 
-  QGroupBox* geometryGroupBox = new QGroupBox("Geometry", centralWidget);
-  makeCollapsible(geometryGroupBox);
-  QVBoxLayout* geometryLayout = new QVBoxLayout(geometryGroupBox);
+  QGroupBox* geometryGroupBox = new CollapsibleGroupBox("Geometry", centralWidget);
+  QWidget* geometryContent = static_cast<CollapsibleGroupBox*>(geometryGroupBox)->contentWidget();
+  QVBoxLayout* geometryLayout = new QVBoxLayout(geometryContent);
 
   QGridLayout* geometryGrid = new QGridLayout();
   geometryGrid->setColumnStretch(1, 1); // slider column fills remaining space, keeping all sliders the same width
   geometryLayout->addLayout(geometryGrid);
 
   int geometryRow = 0;
-  addKnobControl("width",         geometryGroupBox, geometryGrid, geometryRow++);
-  addKnobControl("height",        geometryGroupBox, geometryGrid, geometryRow++);
-  addKnobControl("squish",        geometryGroupBox, geometryGrid, geometryRow++);
-  addKnobControl("squeezeBottom", geometryGroupBox, geometryGrid, geometryRow++);
+  addKnobControl("width",         geometryContent, geometryGrid, geometryRow++);
+  addKnobControl("height",        geometryContent, geometryGrid, geometryRow++);
+  addKnobControl("squish",        geometryContent, geometryGrid, geometryRow++);
+  addKnobControl("squeezeBottom", geometryContent, geometryGrid, geometryRow++);
 
   layout->addWidget(geometryGroupBox);
 
-  QGroupBox* miscGroupBox = new QGroupBox("Miscelaneous", centralWidget);
-  makeCollapsible(miscGroupBox);
-  QVBoxLayout* miscLayout = new QVBoxLayout(miscGroupBox);
+  QGroupBox* miscGroupBox = new CollapsibleGroupBox("Miscelaneous", centralWidget);
+  QWidget* miscContent = static_cast<CollapsibleGroupBox*>(miscGroupBox)->contentWidget();
+  QVBoxLayout* miscLayout = new QVBoxLayout(miscContent);
 
   QGridLayout* miscGrid = new QGridLayout();
   miscGrid->setColumnStretch(1, 1); // slider column fills remaining space, keeping all sliders the same width
   miscLayout->addLayout(miscGrid);
 
   int miscRow = 0;
-  addKnobControl("useFlutterHorizontalDesync", miscGroupBox, miscGrid, miscRow++);
-  addKnobControl("horizontalDesync",           miscGroupBox, miscGrid, miscRow++);
-  addKnobControl("shrinkpulseProbability",     miscGroupBox, miscGrid, miscRow++);
-  addKnobControl("channelChangeCycles",        miscGroupBox, miscGrid, miscRow++);
+  addKnobControl("useFlutterHorizontalDesync", miscContent, miscGrid, miscRow++);
+  addKnobControl("horizontalDesync",           miscContent, miscGrid, miscRow++);
+  addKnobControl("shrinkpulseProbability",     miscContent, miscGrid, miscRow++);
+  addKnobControl("channelChangeCycles",        miscContent, miscGrid, miscRow++);
 
   layout->addWidget(miscGroupBox);
 
-  channelGroupBox = new QGroupBox("Channel", centralWidget);
-  makeCollapsible(channelGroupBox);
-  channelLayout = new QVBoxLayout(channelGroupBox);
+  channelGroupBox = new CollapsibleGroupBox("Channel", centralWidget);
+  channelContentWidget = static_cast<CollapsibleGroupBox*>(channelGroupBox)->contentWidget();
+  channelLayout = new QVBoxLayout(channelContentWidget);
   this->allSources = &sources;
 
   populateChannelSection(channel);
 
   layout->addWidget(channelGroupBox);
 
-  QGroupBox* channelsGroupBox = new QGroupBox("Channels", centralWidget);
-  makeCollapsible(channelsGroupBox);
-  QGridLayout* channelsGrid = new QGridLayout(channelsGroupBox);
+  QGroupBox* channelsGroupBox = new CollapsibleGroupBox("Channels", centralWidget);
+  QWidget* channelsContent = static_cast<CollapsibleGroupBox*>(channelsGroupBox)->contentWidget();
+  QVBoxLayout* channelsLayout = new QVBoxLayout(channelsContent);
+  QGridLayout* channelsGrid = new QGridLayout();
+  channelsLayout->addLayout(channelsGrid);
 
   const int channelButtonColumns = 4;
   for (int i = 0; i < numChannels; ++i)
   {
-    QPushButton* channelButton = new QPushButton(QString::number(i), channelsGroupBox);
+    QPushButton* channelButton = new QPushButton(QString::number(i), channelsContent);
     connect(channelButton, &QPushButton::clicked, [this, i]()
     {
       emit channelSwitchRequested(i);
@@ -407,13 +463,13 @@ void ControlWindow::populateChannelSection(atv::ChanSetting& channel)
   channelGrid->setColumnStretch(1, 1); // slider column fills remaining space, keeping all sliders the same width
   channelLayout->addLayout(channelGrid);
 
-  addPropertyControl(channel.properties, "noise_level", channelGroupBox, channelGrid, 0,
+  addPropertyControl(channel.properties, "noise_level", channelContentWidget, channelGrid, 0,
     [this](double value)
     {
       emit chanParamChanged("noise_level", value);
     });
 
-  QTabWidget* receptionsTabs = new QTabWidget(channelGroupBox);
+  QTabWidget* receptionsTabs = new QTabWidget(channelContentWidget);
   channelLayout->addWidget(receptionsTabs);
 
   for (size_t i = 0; i < channel.receptions.size(); ++i)
