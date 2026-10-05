@@ -344,7 +344,8 @@ void VideoSource::update(AnalogInput& input, double time)
     if (!isCamera)
     {
       cap.set(cv::CAP_PROP_POS_MSEC, time * 1000.0);
-      Log::write(2, videoFileName + ": seek to " + std::to_string(time));
+      int nextFrame = cap.get(cv::CAP_PROP_POS_FRAMES);
+      Log::write(2, videoFileName + ": seek to " + std::to_string(time) + " (frame " + std::to_string(nextFrame) + ")");
     }
     cap.grab();
     this->lastGrabTime = time;

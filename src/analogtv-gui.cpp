@@ -30,6 +30,7 @@ int main(int argc, char** argv)
 
   atv::AppSettings settings = atv::loadSettings(jsonPath);
   atv::Log::setVerbosity(settings.verbosity);
+  atv::Log::setProgName("analogtv-gui");
 
   int seed = settings.seed;
   if (seed == 0)
