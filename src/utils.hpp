@@ -80,7 +80,8 @@ std::map<std::string, ArgType> parseCmdArgs(const std::map<std::string, CmdArgum
 
 void showUsage(const std::string& message, const std::string& appName, const std::map<std::string, CmdArgument>& knownArgs);
 
-
+//TODO: this can be implemented by template metaprogramming
+//based on pointer types
 enum class PropertyType
 {
   Double,

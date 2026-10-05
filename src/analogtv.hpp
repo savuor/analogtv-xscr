@@ -51,7 +51,7 @@ public:
       properties({
       //            data type                 gui type   min                      max  default          description   pointer
       {"ofs",
-        {   PropertyType::Int, ControlType::DoubleSpin,  0.0, ANALOGTV_SIGNAL_LEN-1.0,     0.0,             "Offset in samples",           &ofs}},
+        {PropertyType::Double, ControlType::IntSpin,     0.0, ANALOGTV_SIGNAL_LEN-1.0,     0.0,             "Offset in samples",           &ofs}},
       {"level",
         {PropertyType::Double, ControlType::DoubleSpin, 0.01,                     2.0,     0.3,                  "Signal level",         &level}},
       {"multipath",

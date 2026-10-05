@@ -106,34 +106,48 @@ class SliderSpinboxKnob : public QObject
 
 public:
   // adds label/slider/spinbox to row `row` of `grid` so all knobs in the grid share column widths
-  SliderSpinboxKnob(const QString& title, QWidget* parent, QGridLayout* grid, int row)
-    : QObject(parent)
+  // in integer mode the slider maps 1:1 to the [min, max] range and an int spin box is used
+  SliderSpinboxKnob(const QString& title, QWidget* parent, QGridLayout* grid, int row, bool isInteger = false)
+    : QObject(parent), integer(isInteger)
   {
     v = 0.0;
     minV = 0.0;
     maxV = 100.0;
 
-    label   = new QLabel(title, parent);
-    slider  = new QSlider(Qt::Horizontal, parent);
-    spinBox = new QDoubleSpinBox(parent);
+    label  = new QLabel(title, parent);
+    slider = new QSlider(Qt::Horizontal, parent);
 
-    slider->setRange(0, sliderSteps);
+    // typed pointers are only needed here, to connect the type-specific valueChanged signals
+    if (integer)
+    {
+      auto* intSpin = new QSpinBox(parent);
+      spinBox = intSpin;
+      connect(intSpin, &QSpinBox::valueChanged, this, [this](int value)
+      {
+        this->setValueInternal(value);
+        emit valueChanged(this->v);
+      });
+    }
+    else
+    {
+      auto* doubleSpin = new QDoubleSpinBox(parent);
+      spinBox = doubleSpin;
+      connect(doubleSpin, &QDoubleSpinBox::valueChanged, this, [this](double value)
+      {
+        this->setValueInternal(value);
+        emit valueChanged(this->v);
+      });
+    }
 
     grid->addWidget(label,   row, 0);
     grid->addWidget(slider,  row, 1);
     grid->addWidget(spinBox, row, 2);
 
-    // slider is always integer-valued, so its value is rescaled to/from the [minV, maxV] range
+    // slider is always integer-valued, so in double mode its value is rescaled to/from the [minV, maxV] range
     connect(slider, &QSlider::valueChanged, this, [this](int value)
     {
-      double newValue = minV + (maxV - minV) * value / sliderSteps;
+      double newValue = integer ? value : minV + (maxV - minV) * value / sliderSteps;
       this->setValueInternal(newValue);
-      emit valueChanged(this->v);
-    });
-
-    connect(spinBox, &QDoubleSpinBox::valueChanged, this, [this](double value)
-    {
-      this->setValueInternal(value);
       emit valueChanged(this->v);
     });
 
@@ -154,8 +168,23 @@ public:
   {
     minV = min;
     maxV = max;
-    spinBox->setRange(min, max);
-    spinBox->setSingleStep((max - min) / 100.0);
+    slider->blockSignals(true);
+    spinBox->blockSignals(true);
+    if (integer)
+    {
+      spinBox->setProperty("minimum", static_cast<int>(min));
+      spinBox->setProperty("maximum", static_cast<int>(max));
+      slider->setRange(static_cast<int>(min), static_cast<int>(max));
+    }
+    else
+    {
+      spinBox->setProperty("minimum", min);
+      spinBox->setProperty("maximum", max);
+      spinBox->setProperty("singleStep", (max - min) / 100.0);
+      slider->setRange(0, sliderSteps);
+    }
+    spinBox->blockSignals(false);
+    slider->blockSignals(false);
     setValueInternal(std::clamp(v, minV, maxV));
   }
 
@@ -167,19 +196,31 @@ private:
   void setValueInternal(double value)
   {
     v = std::clamp(value, minV, maxV);
+    if (integer)
+      v = std::round(v);
+
     slider->blockSignals(true);
     spinBox->blockSignals(true);
-    spinBox->setValue(v);
-    int sliderValue = (maxV > minV) ? static_cast<int>(std::round((v - minV) / (maxV - minV) * sliderSteps)) : 0;
-    slider->setValue(sliderValue);
-    slider->blockSignals(false);
+    if (integer)
+    {
+      spinBox->setProperty("value", static_cast<int>(v));
+      slider->setValue(static_cast<int>(v));
+    }
+    else
+    {
+      spinBox->setProperty("value", v);
+      int sliderValue = (maxV > minV) ? static_cast<int>(std::round((v - minV) / (maxV - minV) * sliderSteps)) : 0;
+      slider->setValue(sliderValue);
+    }
     spinBox->blockSignals(false);
+    slider->blockSignals(false);
   }
 
   static constexpr int sliderSteps = 1000;
 
+  bool integer;
   QSlider* slider;
-  QDoubleSpinBox* spinBox;
+  QAbstractSpinBox* spinBox;
   QLabel* label;
   double v, minV, maxV;
 };
@@ -429,29 +470,20 @@ void ControlWindow::addPropertyControl(const atv::Properties& properties, const 
     }
 
     case atv::ControlType::IntSpin:
-    {
-      QLabel* label = new QLabel(title, parent);
-      QSpinBox* spinBox = new QSpinBox(parent);
-      spinBox->setRange(static_cast<int>(minV), static_cast<int>(maxV));
-      spinBox->setValue(static_cast<int>(currentValue));
-      connect(spinBox, &QSpinBox::valueChanged, [onChange](int value)
-      {
-        onChange(value);
-      });
-      grid->addWidget(label,   row, 0);
-      grid->addWidget(spinBox, row, 1, 1, 2);
-      break;
-    }
-
     case atv::ControlType::DoubleSpin:
-    default:
     {
-      SliderSpinboxKnob* knob = new SliderSpinboxKnob(title, parent, grid, row);
+      const bool isInteger = properties.getControlType(paramName) == atv::ControlType::IntSpin;
+      SliderSpinboxKnob* knob = new SliderSpinboxKnob(title, parent, grid, row, isInteger);
       knob->setRange(minV, maxV);
       knob->setValue(currentValue);
       connect(knob, &SliderSpinboxKnob::valueChanged, onChange);
       break;
     }
+    default:
+    {
+      throw std::runtime_error("Unsupported control type");
+    }
+      break;
   }
 }
 
