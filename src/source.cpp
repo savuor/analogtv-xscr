@@ -330,7 +330,8 @@ void VideoSource::init()
   this->lastRetrievedFrame = cv::Mat();
 }
 
-
+//TODO/FIXME: rewrite grab/retrieve logic to fix the issue #1
+//different logic should be applied for cameras and video files
 void VideoSource::update(AnalogInput& input, double time)
 {
   cv::Mat frame, prepared;
@@ -402,6 +403,8 @@ void VideoSource::update(AnalogInput& input, double time)
 
   this->finishFrame(input, time);
 
+  //TODO: this is wrong for video since the time of the next frame
+  //is different from the current frame's time
   // for next frame
   if (retrieved)
   {
