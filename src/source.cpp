@@ -353,12 +353,17 @@ void VideoSource::update(AnalogInput& input, double time)
   }
 
   bool ok = false, retrieved = false;
-  if (time - this->lastRetrieveTime >= 1.0 / this->fps)
+  // Retrieve once per output timestamp. Ghost receptions of the same station
+  // call update() again with the same time and reuse the cached frame below.
+  // Comparing against 1.0 / fps instead would skip every other frame when the
+  // source fps is not exactly the render rate (e.g. 29.97 fps sources).
+  if (time > this->lastRetrieveTime)
   {
     ok = cap.retrieve(frame);
     retrieved = ok;
     this->lastRetrieveTime = time;
-    this->lastRetrievedFrame = frame;
+    // deep copy: the next cap.retrieve(frame) may reuse frame's buffer
+    frame.copyTo(this->lastRetrievedFrame);
   }
   else
   {
