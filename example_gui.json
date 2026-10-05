@@ -20,7 +20,7 @@
         "channelChangeCycles": 200000
     },
     "sources": [
-        { "type": "video", "path": "/home/savuor/Videos/soviet_synths_ad_1984.mkv" },
+        { "type": "video", "path": "/home/savuor/Videos/ort_new_year_1998.mp4" },
         { "type": "bars", "logo": "/home/savuor/Pictures/Emojione_1F602.svg.png" },
         { "type": "image", "path": "/home/savuor/Pictures/90s/photo_2023-03-18_00-36-37.jpg", "timestamp": true },
         { "type": "camera", "id": 0, "timestamp": true }
@@ -28,6 +28,7 @@
     "commented_out_sources": [
         { "type": "NOT_SUPPORTED_slideshow", "glob": "/home/savuor/Pictures/90s/*", "delay": 5000, "timestamp": true },
         { "type": "video", "path": "/home/savuor/Videos/disney_ort.mp4"},
+        { "type": "video", "path": "/home/savuor/Videos/soviet_synths_ad_1984.mkv" },
         { "type": "bars", "logo": "/home/savuor/Pictures/ort.png" },
         { "type": "video", "path": "/home/savuor/Videos/koroleva_tulips.mp4"},
         { "type": "video", "path": "/home/savuor/Videos/smile_1tv_92.mp4"},
