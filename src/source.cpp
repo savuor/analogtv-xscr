@@ -214,29 +214,30 @@ ImageSource::ImageSource(const cv::Mat& _img) :
 
 void ImageSource::resizeImage()
 {
-  cv::Size fittedSize = fitSize(this->img.size(), this->vertUnderscan, this->horizUnderscan, this->lineOverscan);
+  if (std::abs(this->vertUnderscan - this->prevVerticalUnderscan) > 1e-6 ||
+      std::abs(this->horizUnderscan - this->prevHorizontalUnderscan) > 1e-6 ||
+      this->lineOverscan != this->prevLineOverscan ||
+      this->img.size() != this->resizedImg.size())
+  {
+    this->prevVerticalUnderscan = this->vertUnderscan;
+    this->prevHorizontalUnderscan = this->horizUnderscan;
+    this->prevLineOverscan = this->lineOverscan;
 
-  this->offset.x = (ANALOGTV_VIS_LEN  - fittedSize.width) / 2;
-  this->offset.y = (ANALOGTV_VISLINES - fittedSize.height) / 2;
+    cv::Size fittedSize = fitSize(this->img.size(), this->vertUnderscan, this->horizUnderscan, this->lineOverscan);
 
-  cv::resize(this->img, this->resizedImg, fittedSize, 0, 0, cv::INTER_LINEAR);
+    this->offset.x = (ANALOGTV_VIS_LEN  - fittedSize.width) / 2;
+    this->offset.y = (ANALOGTV_VISLINES - fittedSize.height) / 2;
 
-  this->prevVerticalUnderscan = this->vertUnderscan;
-  this->prevHorizontalUnderscan = this->horizUnderscan;
-  this->prevLineOverscan = this->lineOverscan;
+    cv::resize(this->img, this->resizedImg, fittedSize, 0, 0, cv::INTER_LINEAR);
+  }
 }
 
 
 void ImageSource::update(AnalogInput& input, double time)
 {
-  this->setupSync(input);
+  this->resizeImage();
 
-  if (std::abs(this->vertUnderscan - this->prevVerticalUnderscan) > 1e-6 ||
-      std::abs(this->horizUnderscan - this->prevHorizontalUnderscan) > 1e-6 ||
-      this->lineOverscan != this->prevLineOverscan)
-  {
-    this->resizeImage();
-  }
+  this->setupSync(input);
 
   this->loadXImage(input, this->resizedImg, cv::Mat4b(), offset.x, offset.y);
 
