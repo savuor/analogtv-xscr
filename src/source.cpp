@@ -470,10 +470,24 @@ std::shared_ptr<Source> Source::create(const nlohmann::json& j)
     throw std::runtime_error("Unknown source type in JSON: " + type);
   }
 
-  for (const auto& s : {"vertUnderscan", "horizUnderscan", "lineOverscan", "filter_enabled",
-                        "vertical_smoothing", "do_ssavi", "do_cb"})
+  for (const auto& [propName, _] : src->properties)
   {
-    src->properties.setValue(s, j.value(s, src->properties.getDefault(s)));
+    PropertyType propType = src->properties.getType(propName);
+    double defaultValue = src->properties.getDefault(propName);
+    switch (propType)
+    {
+      case PropertyType::Double:
+        src->properties.setValue(propName, j.value(propName, defaultValue));
+        break;
+      case PropertyType::Int:
+        src->properties.setValue(propName, j.value(propName, static_cast<int>(defaultValue)));
+        break;
+      case PropertyType::Bool:
+        src->properties.setValue(propName, j.value(propName, defaultValue > 0) ? 1.0 : 0.0);
+        break;
+      default:
+        break;
+    }
   }
 
   return src;

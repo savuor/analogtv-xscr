@@ -177,6 +177,15 @@ struct Properties : std::map<std::string, PropertyInfo>
       throw std::runtime_error("Parameter not found: " + param);
   }
 
+  PropertyType getType(const std::string& param) const
+  {
+    auto it = this->find(param);
+    if (it != this->end())
+      return it->second.type;
+    else
+      throw std::runtime_error("Parameter not found: " + param);
+  }
+
   void setValue(const std::string& param, double value) const
   {
     auto it = this->find(param);
