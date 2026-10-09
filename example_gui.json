@@ -23,7 +23,7 @@
         { "type": "video", "path": "/home/savuor/Videos/ort_new_year_1998.mp4" },
         { "type": "bars", "logo": "/home/savuor/Pictures/Emojione_1F602.svg.png" },
         { "type": "image", "path": "/home/savuor/Pictures/90s/photo_2023-03-18_00-36-37.jpg", "displayTimestamp": true },
-        { "type": "camera", "id": 0, "displayTimestamp": true },
+        { "type": "camera", "id": 0, "displayTimestamp": true }
     ],
     "commented_out_sources": [
         { "type": "NOT_SUPPORTED_slideshow", "glob": "/home/savuor/Pictures/90s/*", "delay": 5000, "displayTimestamp": true },
