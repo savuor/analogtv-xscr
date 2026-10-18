@@ -6,31 +6,9 @@
     "sequence" :
     [
         {
-            "channel": 4, "duration": 5000,
-            "knobs" : {
-                "tint": 0.0,
-                "color": 1.0,
-                "brightness": 0.0,
-                "contrast": 1.0,
-                "height": 1.0,
-                "width": 1.0,
-                "squish": 0.0,
-                "shrinkpulseProbability": 0.01,
-                "horizontalDesync": 0.0,
-                "squeezeBottom": 0.0,
-                "useFlutterHorizontalDesync": false,
-                "channelChangeCycles": 200000
-            }
-        },
-        {
-            "channel": 5,
-            "duration": 5000
-        },
-        {
             "channel": 0,
-            "duration": 5000,
+            "duration": 10000,
             "knobs": {
-                "tint": 185.0,
                 "color": 0.7,
                 "brightness": 0.02,
                 "contrast": 1.5,
@@ -56,13 +34,34 @@
 
         },
         { "channel": 2, "duration": 5000 },
-        { "channel": 3, "duration": 5000 }
+        { "channel": 3, "duration": 5000 },
+        {
+            "channel": 4, "duration": 5000,
+            "knobs" : {
+                "tint": 0.0,
+                "color": 1.0,
+                "brightness": 0.0,
+                "contrast": 1.0,
+                "height": 1.0,
+                "width": 1.0,
+                "squish": 0.0,
+                "shrinkpulseProbability": 0.01,
+                "horizontalDesync": 0.0,
+                "squeezeBottom": 0.0,
+                "useFlutterHorizontalDesync": false,
+                "channelChangeCycles": 200000
+            }
+        },
+        {
+            "channel": 5,
+            "duration": 5000
+        }
     ],
     "startChannel": 0,
     "powerup": false,
     "powerDownDuration": 1.0,
     "knobs": {
-        "tint": 185.0,
+        "tint": 5.0,
         "color": 0.7,
         "brightness": 0.02,
         "contrast": 1.5,
@@ -76,7 +75,7 @@
         "channelChangeCycles": 200000
     },
     "sources": [
-        { "type": "video", "path": "/home/savuor/Videos/soviet_synths_ad_1984.mkv" },
+        { "type": "video", "path": "/home/savuor/Videos/ort_new_year_1998.mp4" },
         { "type": "bars", "logo": "/home/savuor/Pictures/Emojione_1F602.svg.png" },
         { "type": "image", "path": "/home/savuor/Pictures/90s/photo_2023-03-18_00-36-37.jpg", "displayTimestamp": true },
         { "type": "camera", "id": 0, "displayTimestamp": true },
@@ -89,7 +88,8 @@
         { "type": "bars", "logo": "/home/savuor/Pictures/ort.png" },
         { "type": "video", "path": "/home/savuor/Videos/koroleva_tulips.mp4"},
         { "type": "video", "path": "/home/savuor/Videos/smile_1tv_92.mp4"},
-        { "type": "bars", "logo": "/home/savuor/code/xscreensaver/hacks/images/amiga.png"}
+        { "type": "bars", "logo": "/home/savuor/code/xscreensaver/hacks/images/amiga.png"},
+        { "type": "video", "path": "/home/savuor/Videos/soviet_synths_ad_1984.mkv" }
     ],
     "outputs": [
         { "type": "highgui" }
