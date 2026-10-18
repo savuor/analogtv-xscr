@@ -47,6 +47,9 @@ public:
   static std::shared_ptr<Source> create(const atv::ParametricString& s);
   static std::shared_ptr<Source> create(const nlohmann::json& j);
 
+  static cv::Size fitSize(const cv::Size& imgSize, double vertUnderscan = 0.970, double horizUnderscan = 0.815,
+                          int lineOverscan = 5);
+
   virtual void update(AnalogInput& input, double time) = 0;
 
   virtual std::string getName() const = 0;

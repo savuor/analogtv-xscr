@@ -11,6 +11,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pedantic -Wpedantic -pedantic-errors -W
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} ${CMAKE_CXX_FLAGS} -O2")
 
 find_package(OpenCV)
+find_package(Threads REQUIRED)
 
 find_package(Qt6 COMPONENTS Core Widgets QUIET)
 if(Qt6_FOUND)
@@ -39,6 +40,7 @@ include_directories(
 add_executable(analogtv-cli
     "./src/analogtv-cli.cpp"
     "./src/source.cpp"
+    "./src/video_source.cpp"
     "./src/output.cpp"
     "./src/analogtv.cpp"
     "./src/analogtv_input.cpp"
@@ -48,7 +50,7 @@ add_executable(analogtv-cli
     "./src/recorded_control.cpp"
 )
 
-target_link_libraries(analogtv-cli PRIVATE ${OpenCV_LIBS} nlohmann_json::nlohmann_json)
+target_link_libraries(analogtv-cli PRIVATE ${OpenCV_LIBS} nlohmann_json::nlohmann_json Threads::Threads)
 
 add_executable(analogtv-gui
     "./src/analogtv-gui.cpp"
@@ -56,10 +58,11 @@ add_executable(analogtv-gui
     "./src/control_window.cpp"
     "./src/qt_output.cpp"
     "./src/source.cpp"
+    "./src/video_source.cpp"
     "./src/output.cpp"
     "./src/analogtv.cpp"
     "./src/analogtv_input.cpp"
     "./src/utils.cpp"
 )
 
-target_link_libraries(analogtv-gui PRIVATE ${OpenCV_LIBS} ${QT_LIBRARIES} nlohmann_json::nlohmann_json)
+target_link_libraries(analogtv-gui PRIVATE ${OpenCV_LIBS} ${QT_LIBRARIES} nlohmann_json::nlohmann_json Threads::Threads)

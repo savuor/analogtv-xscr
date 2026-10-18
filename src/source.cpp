@@ -1,9 +1,8 @@
 #include "precomp.hpp"
 
 #include "source.hpp"
-
-#include <opencv2/imgproc.hpp>
-#include <opencv2/videoio.hpp>
+#include "source_types.hpp"
+#include "video_source.hpp"
 
 //DEBUG
 #include <opencv2/highgui.hpp>
@@ -38,22 +37,6 @@ void Source::finishFrame(AnalogInput& input, double time)
 
 
 static int barsSourceCount = 0;
-
-struct BarsSource : Source
-{
-  BarsSource(const cv::Mat& _logoImg = { });
-
-  void update(AnalogInput& input, double time) override;
-
-  std::string getName() const override
-  {
-    return "SMPTE Color Bars #" + std::to_string(number);
-  }
-
-  cv::Mat logoImg, logoMask;
-  int number;
-};
-
 
 BarsSource::BarsSource(const cv::Mat& _logoImg) :
   Source(),
@@ -148,7 +131,8 @@ void BarsSource::update(AnalogInput& input, double time)
 }
 
 
-cv::Size fitSize(const cv::Size& imgSize, double vertUnderscan = 0.970, double horizUnderscan = 0.815, int lineOverscan = 5)
+cv::Size Source::fitSize(const cv::Size& imgSize, double vertUnderscan, double horizUnderscan,
+                         int lineOverscan)
 {
   // here we change the original image resizing algorithm from XAnalogTV
   // to avoid incorrect resampling and allow finer control over the image fitting
@@ -179,28 +163,6 @@ cv::Size fitSize(const cv::Size& imgSize, double vertUnderscan = 0.970, double h
 
 static int imageSourceCount = 0;
 
-struct ImageSource : Source
-{
-  ImageSource(const cv::Mat& _img = { });
-
-  void update(AnalogInput& input, double time) override;
-
-  std::string getName() const override
-  {
-    return "Image #" + std::to_string(number);
-  }
-
-  void resizeImage();
-
-  cv::Mat img;
-  cv::Mat resizedImg;
-  cv::Point offset;
-  int number;
-
-  double prevVerticalUnderscan = 0.970;
-  double prevHorizontalUnderscan = 0.815;
-  int prevLineOverscan = 5;
-};
 
 ImageSource::ImageSource(const cv::Mat& _img) :
   Source(),
@@ -244,177 +206,6 @@ void ImageSource::update(AnalogInput& input, double time)
   this->finishFrame(input, time);
 }
 
-
-// Video file or camera
-struct VideoSource : Source
-{
-  VideoSource() :
-    Source(),
-    frameSize(),
-    fittedSize(),
-    offset(),
-    cap(),
-    isCamera(false),
-    videoFileName(0),
-    nCamera(0),
-    lastGrabTime(0),
-    lastRetrieveTime(0),
-    lastRetrievedFrame(),
-    fps(0)
-  { }
-
-  VideoSource(int nCam);
-  VideoSource(const std::string& fileName);
-
-  void init();
-
-  void update(AnalogInput& input, double time) override;
-
-  std::string getName() const override
-  {
-    return isCamera ? ("Camera #" + std::to_string(nCamera)) : ("Video File " + videoFileName);
-  }
-
-  cv::Size frameSize, fittedSize;
-  cv::Point offset;
-  cv::VideoCapture cap;
-  // TODO: variant or so
-  bool isCamera;
-  std::string videoFileName;
-  int nCamera;
-
-  double lastGrabTime;
-  double lastRetrieveTime;
-  cv::Mat lastRetrievedFrame;
-  double fps;
-};
-
-
-VideoSource::VideoSource(int nCam)
-  : Source()
-{
-  nCamera = nCam;
-  isCamera = true;
-
-  init();
-}
-
-VideoSource::VideoSource(const std::string& fileName)
-  : Source()
-{
-  isCamera = false;
-  videoFileName = fileName;
-
-  init();
-}
-
-void VideoSource::init()
-{
-  bool ok = isCamera ? cap.open(nCamera) : cap.open(videoFileName);
-
-  if (!ok)
-  {
-    std::string err = "Failed to open VideoCapture for " +
-                      (isCamera ? ("camera #" + std::to_string(nCamera)) :
-                                  ("file " + videoFileName));
-    throw std::runtime_error(err);
-  }
-
-  this->frameSize = { (int)cap.get(cv::CAP_PROP_FRAME_WIDTH), (int)cap.get(cv::CAP_PROP_FRAME_HEIGHT)};
-  this->fps = cap.get(cv::CAP_PROP_FPS);
-
-  Log::write(2, "reading from " + (isCamera ? ("cam #" + std::to_string(nCamera)) : videoFileName) + " " +
-                std::to_string(frameSize.width) + "x" + std::to_string(frameSize.height) + " " + std::to_string(this->fps) + " FPS");
-
-  this->lastGrabTime = -std::numeric_limits<double>::max();
-  this->lastRetrieveTime = -std::numeric_limits<double>::max();
-  this->lastRetrievedFrame = cv::Mat();
-}
-
-//TODO/FIXME: rewrite grab/retrieve logic to fix the issue #1
-//different logic should be applied for cameras and video files
-void VideoSource::update(AnalogInput& input, double time)
-{
-  cv::Mat frame, prepared;
-
-  if (time - lastGrabTime >= 2.0 / this->fps)
-  {
-    std::string sTime = time < 0 ? "never" : std::to_string(time);
-    std::string sLastTime = lastGrabTime < 0 ? "never" : std::to_string(lastGrabTime);
-    Log::write(2, "Grab extra frame from " + (isCamera ? ("cam #" + std::to_string(nCamera)) : videoFileName) +
-                  ": t=" + sTime + " vs last_t=" + sLastTime);
-    if (!isCamera)
-    {
-      cap.set(cv::CAP_PROP_POS_MSEC, time * 1000.0);
-      int nextFrame = cap.get(cv::CAP_PROP_POS_FRAMES);
-      Log::write(2, videoFileName + ": seek to " + std::to_string(time) + " (frame " + std::to_string(nextFrame) + ")");
-    }
-    cap.grab();
-    this->lastGrabTime = time;
-  }
-
-  bool ok = false, retrieved = false;
-  if (time - this->lastRetrieveTime >= 1.0 / this->fps)
-  {
-    ok = cap.retrieve(frame);
-    retrieved = ok;
-    this->lastRetrieveTime = time;
-    this->lastRetrievedFrame = frame;
-  }
-  else
-  {
-    frame = this->lastRetrievedFrame;
-    ok = true;
-  }
-
-  // these properties can be changed in realtime
-  this->fittedSize = fitSize(this->frameSize, this->vertUnderscan, this->horizUnderscan, this->lineOverscan);
-
-  this->offset.x = (ANALOGTV_VIS_LEN  - this->fittedSize.width) / 2;
-  this->offset.y = (ANALOGTV_VISLINES - this->fittedSize.height) / 2;
-
-  if (!ok || frame.empty())
-  {
-    prepared = cv::Mat(this->fittedSize, CV_8UC4, cv::Scalar(128, 64, 0));
-    int baseline = 0;
-    double scale = 2.0;
-    std::string text = "no frame :(";
-    cv::Size szOsd = cv::getTextSize(text, cv::FONT_HERSHEY_PLAIN, scale, 1, &baseline);
-    cv::Mat osd(szOsd.height + baseline, szOsd.width, CV_8UC4, cv::Scalar(128, 64, 0));
-    cv::putText(osd, text, {0, osd.rows - baseline}, cv::FONT_HERSHEY_PLAIN, scale, cv::Scalar::all(255), 1);
-    cv::Mat resized;
-    cv::resize(osd, resized, {}, signalStretch, 1.0);
-    cv::Point textOrg((this->fittedSize.width  - resized.cols) / 2,
-                      (this->fittedSize.height - resized.rows) / 2);
-    resized.copyTo(prepared(cv::Rect(textOrg.x, textOrg.y, resized.cols, resized.rows)));
-  }
-  else
-  {
-    cv::Mat resized;
-    cv::resize(frame, resized, this->fittedSize);
-    std::vector<cv::Mat> ch;
-    cv::split(resized, ch);
-    cv::Mat z = cv::Mat(this->fittedSize, CV_8UC1, cv::Scalar(0));
-    cv::merge(std::vector<cv::Mat> {ch[0], ch[1], ch[2], z}, prepared);
-  }
-
-  this->setupSync(input);
-
-  this->loadXImage(input, prepared, cv::Mat4b(), offset.x, offset.y);
-
-  this->finishFrame(input, time);
-
-  //TODO: this is wrong for video since the time of the next frame
-  //is different from the current frame's time
-  // for next frame
-  if (retrieved)
-  {
-    cap.grab();
-    this->lastGrabTime = time;
-  }
-}
-
-
 // the sources can be tuned later for different size or other params
 std::shared_ptr<Source> Source::create(const nlohmann::json& j)
 {
@@ -444,7 +235,7 @@ std::shared_ptr<Source> Source::create(const nlohmann::json& j)
   else if (type == "camera" || type == "cam")
   {
     int id = j.value("id", 0);
-    src = std::make_shared<VideoSource>(id);
+    src = std::make_shared<CameraSource>(id);
   }
   else if (type == "video")
   {
@@ -453,7 +244,7 @@ std::shared_ptr<Source> Source::create(const nlohmann::json& j)
     {
       throw std::runtime_error("Video source missing 'path' property");
     }
-    src = std::make_shared<VideoSource>(path);
+    src = std::make_shared<VideoFileSource>(path);
   }
   else if (type == "image")
   {
@@ -515,12 +306,12 @@ std::shared_ptr<Source> Source::create(const atv::ParametricString& desc)
     else if (desc.className == "cam")
     {
       int nCam = arg.empty() ? 0 : parseInt(arg).value_or(0);
-      src = std::make_shared<VideoSource>(nCam);
+      src = std::make_shared<CameraSource>(nCam);
     }
     // should be like ":video:/path/to/video:params"
     else if (desc.className == "video")
     {
-      src = std::make_shared<VideoSource>(arg);
+      src = std::make_shared<VideoFileSource>(arg);
     }
     // should be like ":image:/path/to/image/:params"
     else if (desc.className == "image")
@@ -550,7 +341,7 @@ std::shared_ptr<Source> Source::create(const atv::ParametricString& desc)
 
     if (knownVideoExtensions.count(ext))
     {
-      src = std::make_shared<VideoSource>(srcStr);
+      src = std::make_shared<VideoFileSource>(srcStr);
     }
     else
     {
