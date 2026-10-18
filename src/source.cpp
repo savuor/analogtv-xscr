@@ -134,6 +134,8 @@ void BarsSource::update(AnalogInput& input, double time)
 cv::Size Source::fitSize(const cv::Size& imgSize, double vertUnderscan, double horizUnderscan,
                          int lineOverscan)
 {
+  assert(imgSize.width > 0 && imgSize.height > 0);
+
   // here we change the original image resizing algorithm from XAnalogTV
   // to avoid incorrect resampling and allow finer control over the image fitting
 
@@ -157,6 +159,7 @@ cv::Size Source::fitSize(const cv::Size& imgSize, double vertUnderscan, double h
   fittedSize.width  = fittedSize.width * signalStretch * horizUnderscan;
   fittedSize.height = fittedSize.height * vertUnderscan * overscanFactor;
 
+  CV_Assert(fittedSize.width > 0 && fittedSize.height > 0);
   return cv::Size(static_cast<int>(fittedSize.width), static_cast<int>(fittedSize.height));
 }
 
