@@ -77,7 +77,35 @@
 				"preLaunchTask": "CMake: build",
 				"args": [
 					"--verbose", "2",
-					"--control", "${workspaceFolder}/example_control.json",
+					"--control", "${workspaceFolder}/example_recorded_control.json",
+						],
+				"stopAtEntry": false,
+				"cwd": "${fileDirname}",
+				"environment": [],
+				"externalConsole": false,
+				"MIMode": "gdb",
+				"setupCommands": [
+					{
+						"description": "Enable pretty-printing for gdb",
+						"text": "-enable-pretty-printing",
+						"ignoreFailures": true
+					},
+					{
+						"description": "Set Disassembly Flavor to Intel",
+						"text": "-gdb-set disassembly-flavor intel",
+						"ignoreFailures": true
+					}
+				]
+			},
+			{
+				"name": "CLI counter",
+				"type": "cppdbg",
+				"request": "launch",
+				"program": "${command:cmake.buildDirectory}/analogtv-cli",
+				"preLaunchTask": "CMake: build",
+				"args": [
+					"--verbose", "2",
+					"--control", "${workspaceFolder}/control counter.json",
 						],
 				"stopAtEntry": false,
 				"cwd": "${fileDirname}",

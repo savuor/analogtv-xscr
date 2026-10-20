@@ -1,0 +1,39 @@
+{
+    "verbose": 2,
+    "seed": 1234,
+    "size": [1024, 768],
+    "fps": 30,
+    "sequence" :
+    [
+        { "channel": 0, "duration": 34000 }
+    ],
+    "startChannel": 0,
+    "powerup": false,
+    "powerDownDuration": 1.0,
+    "knobs": {
+        "tint": 5.0,
+        "color": 0.7,
+        "brightness": -0.02,
+        "contrast": 1.0,
+        "height": 1.0,
+        "width": 1.0,
+        "squish": 0.0,
+        "shrinkpulseProbability": 0.01,
+        "horizontalDesync": 0.0,
+        "squeezeBottom": 0.0,
+        "useFlutterHorizontalDesync": false,
+        "channelChangeCycles": 200000
+    },
+    "sources": [
+        { "type": "video", "path": "/home/savuor/code/analogtv-xscr/misc/counter.mp4", "displayTimestamp": true }
+    ],
+    "outputs": [
+        { "type": "highgui" }
+    ],
+    "commented_out_outputs": [
+        { "type": "video", "path": "/home/savuor/Videos/counter_output.mp4" }
+    ],
+    "channels": [
+        { "noise_level": 0.01, "receptions": [{ "source": 0, "level": 0.3 }] }
+    ]
+}
