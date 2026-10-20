@@ -507,9 +507,6 @@ void CameraSource::workerLoop()
 }
 
 
-namespace
-{
-
 struct PlaceholderStyle
 {
   const char* text;
@@ -527,8 +524,6 @@ PlaceholderStyle getPlaceholderStyle(FrameStatus status)
   default:                   return {"capture error :(",      cv::Scalar(0, 0, 128)};
   }
 }
-
-} // ::
 
 
 cv::Mat VideoSource::getPlaceholder(FrameStatus status, cv::Size size)
