@@ -19,6 +19,7 @@
 #include <fstream>
 #include <functional>
 #include <memory>
+#include <array>
 #include <set>
 #include <map>
 #include <optional>
@@ -30,6 +31,11 @@
 
 #include <condition_variable>
 #include <mutex>
+#include <atomic>
+
+#include <exception>
+#include <future>
+#include <stdexcept>
 
 #include <nlohmann/json.hpp>
 

@@ -32,6 +32,17 @@ public:
     return message;
   }
 
+  // an empty result means that the timeout has expired
+  std::optional<Message> waitPopFor(std::chrono::milliseconds timeout)
+  {
+    std::unique_lock<std::mutex> lock(this->mtx);
+    if (!this->cond.wait_for(lock, timeout, [this] { return !this->messages.empty(); }))
+      return std::nullopt;
+    Message message = std::move(this->messages.front());
+    this->messages.pop_front();
+    return message;
+  }
+
   std::optional<Message> tryPop()
   {
     std::lock_guard<std::mutex> lock(this->mtx);
@@ -52,45 +63,68 @@ private:
 
 
 struct StopWorker { };
-// epoch identifies the frames requested by this seek, see TimedFrameQueue::reset()
-struct SeekVideoFrame { uint64_t epoch; double time; };
+// epoch identifies the frames requested by this seek, see FrameQueue::reset()
+struct SeekVideoFrame { uint64_t epoch; int64_t index; };
 using WorkerCommand = std::variant<StopWorker, SeekVideoFrame>;
 
 
-struct TimedFrame
+// What a source has to show right now.
+enum class FrameStatus
 {
-  double time = 0.0;
+  Waiting, // the source is not opened yet, nothing to show
+  Frame,   // the frame is valid
+  Error,   // the capture has failed after it was opened
+  End      // the video is over
+};
+
+struct AcquiredFrame
+{
+  FrameStatus status = FrameStatus::Waiting;
+  // valid until the next acquireFrame() call, do not keep it
+  cv::Mat frame;
+};
+
+
+struct IndexedFrame
+{
+  int64_t index = 0;
   cv::Mat frame;
 };
 
 
 // Bounded queue of consecutive video frames: the worker fills it, the main thread takes the frame to show.
-class TimedFrameQueue
+// Frames are identified by their numbers; the numbers requested by the main thread never decrease.
+class FrameQueue
 {
 public:
   enum class Status
   {
     Frame,    // the frame to show is returned
     NeedSeek, // the queue holds no suitable frame, the worker should be asked to seek
-    End       // the video is over or failed
+    End,      // the video is over
+    Error     // the video can't be read
   };
 
-  explicit TimedFrameQueue(size_t maxFrames) : capacity(maxFrames) { }
+  explicit FrameQueue(size_t maxFrames) : capacity(maxFrames) { }
 
-  // worker: the stream is opened
-  void start(double duration);
+  // worker: the stream is opened; if the requested frame is more than `threshold` frames ahead
+  // of the shown one, a seek is considered cheaper than reading the frames one by one
+  void start(int64_t threshold);
 
   // the frames retrieved before a reset (seek/error) belong to the old epoch and are considered stale
   // epoch ID is used to distinguish between frames from different playback sessions
   // returns true if the frame was accepted, false if the queue was reset meanwhile
-  bool push(uint64_t frameEpoch, double time, cv::Mat frame);
+  bool push(uint64_t frameEpoch, int64_t index, cv::Mat frame);
 
-  // worker: no more frames are coming in this epoch (end of video or an error)
-  void finish(uint64_t finishedEpoch);
+  // worker: no more frames are coming in this epoch, `terminal` is Status::End or Status::Error
+  void finish(uint64_t finishedEpoch, Status terminal);
 
-  // main: finds the latest frame not later than `time`, dropping the earlier ones; waits for the worker if needed
-  // `time` should not decrease
-  Status pull(double time, cv::Mat& frame);
+  // worker: the worker is dead, every pull() fails from now on
+  void abort();
+
+  // main: finds the latest frame not later than `index`, dropping the earlier ones; waits for the worker if needed
+  // `index` should not decrease; if it does, the current frame is returned
+  Status pull(int64_t index, cv::Mat& frame);
 
   // main: drops all the frames, returns a new epoch; the frames of the older epochs are ignored from now on
   uint64_t reset();
@@ -99,11 +133,13 @@ private:
   const size_t capacity;
   std::mutex mtx;
   std::condition_variable cond;
-  std::deque<TimedFrame> frames;
-  std::optional<TimedFrame> current;
-  double frameDuration = 0.0;
+  std::deque<IndexedFrame> frames;
+  std::optional<IndexedFrame> current;
+  int64_t seekThreshold = 0;
   uint64_t epoch = 0;
   bool finished = false;
+  Status terminalStatus = Status::End;
+  bool aborted = false;
 };
 
 
@@ -117,37 +153,64 @@ struct VideoSource : Source
     stopWorker();
   }
 
+  // Blocks until the worker has tried to open the source; throws std::runtime_error if it has failed.
+  // update() throws it as well, so calling this is optional: it just reports the failure earlier.
+  void waitOpened();
+
+  // size of the latest shown frame, changed by update() only
   cv::Size frameSize;
-  double fps = 0;
-  cv::Mat emptyFramePlaceholder;
+  // frame rate reported by the capture, 0 if unknown
+  std::atomic<double> fps;
 
 protected:
-  VideoSource() : Source(), frameSize(), fps(0), emptyFramePlaceholder() { }
+  static constexpr int defaultFrameWidth = 640;
+  static constexpr int defaultFrameHeight = 480;
+
+  VideoSource() : Source(), frameSize(defaultFrameWidth, defaultFrameHeight), fps(0.0) { }
 
   // Derived constructors start the worker after initializing their capture parameters.
   void startWorker();
   void stopWorker();
 
-  virtual cv::Mat acquireFrame(double time) = 0;
+  // main thread: what to show at `time`, throws std::runtime_error if the source has failed to open
+  virtual AcquiredFrame acquireFrame(double time) = 0;
 
   // called before the worker is stopped, unblocks it if it waits for something else than commands
   virtual void wakeWorker() { }
 
+  // called in the worker thread if workerLoop() has thrown, makes the main thread stop waiting for the worker
+  virtual void onWorkerCrash() { }
+
   // runs in the worker thread
   virtual bool open(cv::VideoCapture& capture) = 0;
 
-  // runs in the worker thread, mtx is not held
+  // runs in the worker thread
   bool getFrame(cv::VideoCapture& capture, cv::Mat& frame);
   bool initializeCapture(cv::VideoCapture& capture);
   virtual void workerLoop() = 0;
 
-  std::mutex frameMtx;
-  cv::Mat latestFrame;
-  cv::Mat acquiredFrame;
+  // worker: the first attempt to open the source is over, call exactly one of them
+  void reportOpened();
+  void reportOpenFailure();
+
+  // main thread, non-blocking: throws if the first attempt to open the source has failed
+  void checkOpened();
+
   MessageQueue<WorkerCommand> commands;
 
 private:
+  void handleWorkerCrash(const std::string& what);
+  cv::Mat getPlaceholder(FrameStatus status, cv::Size size);
+
   std::thread worker;
+
+  std::promise<void> openPromise;
+  std::shared_future<void> openFuture = openPromise.get_future().share();
+  // main thread only: the open result is known and it is a success
+  bool openConfirmed = false;
+
+  // one per FrameStatus value, the one for FrameStatus::Frame stays empty
+  std::array<cv::Mat, 4> placeholders;
 };
 
 
@@ -168,38 +231,56 @@ struct VideoFileSource : VideoSource
   std::string videoFileName;
 
 protected:
-  cv::Mat acquireFrame(double time) override;
+  AcquiredFrame acquireFrame(double time) override;
   void wakeWorker() override;
+  void onWorkerCrash() override;
   void workerLoop() override;
   bool open(cv::VideoCapture& capture) override;
 
 private:
   static constexpr size_t frameQueueCapacity = 8;
-  TimedFrameQueue frames{frameQueueCapacity};
-  std::optional<double> lastTime;
-  cv::Mat lastFrame;
+  // if the requested frame is further than this, the worker seeks instead of reading the frames one by one
+  static constexpr double seekThresholdSeconds = 1.0;
+  // protects against 29.99999 instead of 30 when a time is converted to a frame number
+  static constexpr double indexEpsilon = 1e-6;
+  static constexpr double fallbackFps = 30.0;
+
+  FrameQueue frames{frameQueueCapacity};
+  // the worker writes it before reportOpened(), the main thread reads it after waitOpened()
+  double playbackFps = 0.0;
+  std::optional<int64_t> lastIndex;
+  AcquiredFrame lastResult;
 };
 
 
-
-struct CameraFrameAvailable { };
-struct CameraCaptureFailed { };
-using CameraMessage = std::variant<CameraFrameAvailable, CameraCaptureFailed>;
-
+// Hands the latest camera frame from the capture thread over to the main thread without copying pixels:
+// three buffers (the worker's, the mailbox's and the consumer's) are swapped around.
 class CameraFrameMailbox
 {
 public:
-  void publishFrame(const cv::Mat& frame, cv::Mat& latestFrame);
+  // worker: puts the frame into the mailbox, `frame` gets a spare buffer back to retrieve the next frame into
+  void publishFrame(cv::Mat& frame);
 
-  void publishFailure();
+  // worker: there is nothing to show (FrameStatus::Waiting or FrameStatus::Error)
+  void publishStatus(FrameStatus status);
 
-  cv::Mat pull(uint64_t& consumedSequence, cv::Mat& latestFrame, cv::Mat& acquiredFrame);
+  // worker: true if the consumer has taken the previous frame and wants a new one
+  bool frameRequested() const
+  {
+    return this->requested.load();
+  }
+
+  // main: never blocks, the returned frame is valid until the next pull() call
+  AcquiredFrame pull();
 
 private:
   std::mutex mtx;
-  std::condition_variable cond;
-  uint64_t sequence = 0;
-  CameraMessage latestMessage = CameraFrameAvailable{};
+  FrameStatus status = FrameStatus::Waiting;
+  // `latest` holds a frame that was not taken yet
+  bool fresh = false;
+  cv::Mat latest;
+  cv::Mat acquired;
+  std::atomic<bool> requested{true};
 };
 
 
@@ -218,13 +299,25 @@ struct CameraSource : VideoSource
   }
 
   int nCamera;
-  CameraFrameMailbox messages;
-  uint64_t consumedMessageSequence = 0;
 
 protected:
-  cv::Mat acquireFrame(double time) override;
+  AcquiredFrame acquireFrame(double time) override;
+  void onWorkerCrash() override;
   void workerLoop() override;
   bool open(cv::VideoCapture& capture) override;
+
+private:
+  // grab() always runs to drain the device buffer, but retrieve() (decoding + color conversion)
+  // runs only when the consumer has taken the previous frame, which saves CPU when the consumer is slower
+  // than the camera. The price: the frame is up to one consumer period older than it could be.
+  // Set it to false to decode every frame.
+  static constexpr bool retrieveOnlyWhenRequested = true;
+  // a single bad frame is skipped, a series of them is considered a lost camera
+  static constexpr int maxBadFrames = 10;
+  static constexpr std::chrono::milliseconds reconnectDelayMin{500};
+  static constexpr std::chrono::milliseconds reconnectDelayMax{5000};
+
+  CameraFrameMailbox messages;
 };
 
 
