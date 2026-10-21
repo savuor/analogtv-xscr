@@ -105,16 +105,29 @@ public:
     Error     // the video can't be read
   };
 
-  explicit FrameQueue(size_t maxFrames) : capacity(maxFrames) { }
+  // worker: the stream is opened; `maxFrames` is how many frames the worker may read ahead;
+  // if the requested frame is more than `threshold` frames ahead of the worker, a seek is considered cheaper
+  // than reading the frames one by one
+  void start(size_t maxFrames, int64_t threshold);
 
-  // worker: the stream is opened; if the requested frame is more than `threshold` frames ahead
-  // of the shown one, a seek is considered cheaper than reading the frames one by one
-  void start(int64_t threshold);
+  // worker: the threshold is corrected when the real costs of seeking and reading are known
+  void setSeekThreshold(int64_t threshold);
+
+  // worker: the number of the frame that the main thread has asked for the last time;
+  // the earlier frames are late: they will be dropped, so there is no need to convert them
+  int64_t wantedIndex() const
+  {
+    return this->wanted.load();
+  }
 
   // the frames retrieved before a reset (seek/error) belong to the old epoch and are considered stale
   // epoch ID is used to distinguish between frames from different playback sessions
   // returns true if the frame was accepted, false if the queue was reset meanwhile
   bool push(uint64_t frameEpoch, int64_t index, cv::Mat frame);
+
+  // worker: the frame was read but not retrieved because it is late
+  // returns true if it was accepted, false if the queue was reset meanwhile
+  bool skip(uint64_t frameEpoch, int64_t index);
 
   // worker: no more frames are coming in this epoch, `terminal` is Status::End or Status::Error
   void finish(uint64_t finishedEpoch, Status terminal);
@@ -130,16 +143,19 @@ public:
   uint64_t reset();
 
 private:
-  const size_t capacity;
   std::mutex mtx;
   std::condition_variable cond;
+  size_t capacity = 1;
   std::deque<IndexedFrame> frames;
   std::optional<IndexedFrame> current;
+  // the number of the last frame that the worker has handled in this epoch (queued or skipped)
+  std::optional<int64_t> progress;
   int64_t seekThreshold = 0;
   uint64_t epoch = 0;
   bool finished = false;
   Status terminalStatus = Status::End;
   bool aborted = false;
+  std::atomic<int64_t> wanted{0};
 };
 
 
@@ -185,7 +201,6 @@ protected:
   virtual bool open(cv::VideoCapture& capture) = 0;
 
   // runs in the worker thread
-  bool getFrame(cv::VideoCapture& capture, cv::Mat& frame);
   bool initializeCapture(cv::VideoCapture& capture);
   virtual void workerLoop() = 0;
 
@@ -238,14 +253,21 @@ protected:
   bool open(cv::VideoCapture& capture) override;
 
 private:
-  static constexpr size_t frameQueueCapacity = 8;
-  // if the requested frame is further than this, the worker seeks instead of reading the frames one by one
-  static constexpr double seekThresholdSeconds = 1.0;
+  // The worker reads ahead as many frames as fit into the memory budget, but not less and not more than that.
+  static constexpr size_t maxQueueFrames = 8;
+  static constexpr size_t minQueueFrames = 2;
+  static constexpr size_t queueBytesBudget = 128u * 1024u * 1024u;
+  // If the requested frame is further than this, the worker seeks instead of reading the frames one by one.
+  // The initial value is a guess, then it is tuned by measuring the real costs of seeking and reading,
+  // because they depend on the codec and the key frame interval a lot.
+  static constexpr double initialSeekThresholdSeconds = 1.0;
+  static constexpr double maxSeekThresholdSeconds = 10.0;
+  static constexpr int64_t minSeekThresholdFrames = 4;
   // protects against 29.99999 instead of 30 when a time is converted to a frame number
   static constexpr double indexEpsilon = 1e-6;
   static constexpr double fallbackFps = 30.0;
 
-  FrameQueue frames{frameQueueCapacity};
+  FrameQueue frames;
   // the worker writes it before reportOpened(), the main thread reads it after waitOpened()
   double playbackFps = 0.0;
   std::optional<int64_t> lastIndex;

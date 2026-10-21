@@ -55,6 +55,7 @@ _Note: these videos were built using ffmpeg like this:_
 
 ### TODO
 * check that video & camera frames are obtained with correct timings
+* analyze deeply the video/camera source code, simplify it if needed
 * use names for sources instead of numbers
 * drop extra params, refactor code, etc.
 * add more params from existing, like different number of scanlines, etc.

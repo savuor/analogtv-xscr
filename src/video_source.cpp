@@ -78,11 +78,6 @@ void VideoSource::checkOpened()
   }
 }
 
-bool VideoSource::getFrame(cv::VideoCapture& capture, cv::Mat& frame)
-{
-  return capture.grab() && capture.retrieve(frame);
-}
-
 bool VideoSource::initializeCapture(cv::VideoCapture& capture)
 {
   bool ok = this->open(capture);
@@ -179,6 +174,8 @@ AcquiredFrame VideoFileSource::acquireFrame(double time)
 
 void VideoFileSource::workerLoop()
 {
+  using Clock = std::chrono::steady_clock;
+
   cv::VideoCapture capture;
   if (!this->initializeCapture(capture))
   {
@@ -188,8 +185,51 @@ void VideoFileSource::workerLoop()
 
   const double reportedFps = this->fps;
   this->playbackFps = reportedFps > 0.0 ? reportedFps : fallbackFps;
-  this->frames.start(static_cast<int64_t>(std::ceil(seekThresholdSeconds * this->playbackFps)));
+
+  // the frames are big, so the read-ahead is limited by memory
+  const double frameBytes = 3.0 * capture.get(cv::CAP_PROP_FRAME_WIDTH) * capture.get(cv::CAP_PROP_FRAME_HEIGHT);
+  size_t capacity = maxQueueFrames;
+  if (frameBytes > 0.0)
+    capacity = std::clamp(static_cast<size_t>(queueBytesBudget / frameBytes), minQueueFrames, maxQueueFrames);
+
+  const int64_t minThreshold = minSeekThresholdFrames;
+  const int64_t maxThreshold = std::max(
+    minThreshold, static_cast<int64_t>(std::ceil(maxSeekThresholdSeconds * this->playbackFps)));
+  int64_t seekThreshold = std::clamp(
+    static_cast<int64_t>(std::ceil(initialSeekThresholdSeconds * this->playbackFps)), minThreshold, maxThreshold);
+
+  Log::write(2, "Video file: reading ahead " + std::to_string(capacity) + " frames, seeking from " +
+                std::to_string(seekThreshold) + " frames");
+  this->frames.start(capacity, seekThreshold);
   this->reportOpened();
+
+  // measured costs in milliseconds: reading a frame without converting it, and seeking together with the first read
+  double grabMs = 0.0;
+  double seekMs = 0.0;
+  double seekCallMs = 0.0;
+  bool seekPending = false;
+  const auto elapsedMs = [](Clock::time_point since)
+  {
+    return std::chrono::duration<double, std::milli>(Clock::now() - since).count();
+  };
+  const auto smooth = [](double& estimate, double sample, double weight)
+  {
+    estimate = estimate > 0.0 ? estimate + weight * (sample - estimate) : sample;
+  };
+  // a seek pays off if it is cheaper than reading the frames in between
+  const auto tuneThreshold = [&]
+  {
+    if (grabMs <= 0.0 || seekMs <= 0.0)
+      return;
+    const int64_t tuned = std::clamp(static_cast<int64_t>(std::ceil(seekMs / grabMs)), minThreshold, maxThreshold);
+    if (tuned != seekThreshold)
+    {
+      seekThreshold = tuned;
+      this->frames.setSeekThreshold(seekThreshold);
+      Log::write(2, "Video file: a seek costs " + std::to_string(seekMs) + " ms, reading a frame " +
+                    std::to_string(grabMs) + " ms, seeking from " + std::to_string(seekThreshold) + " frames");
+    }
+  };
 
   uint64_t epoch = 0;
   // index of the frame that is read next
@@ -218,22 +258,65 @@ void VideoFileSource::workerLoop()
         const int64_t target = seek->index;
         Log::write(2, "Video file seek to frame " + std::to_string(target));
         idle = false;
-        if (target != index && !capture.set(cv::CAP_PROP_POS_FRAMES, static_cast<double>(target)))
+        if (target != index)
         {
-          Log::write(0, "Video file seek failed");
-          this->frames.finish(epoch, FrameQueue::Status::Error);
-          idle = true;
+          const auto seekStart = Clock::now();
+          if (capture.set(cv::CAP_PROP_POS_FRAMES, static_cast<double>(target)))
+          {
+            seekCallMs = elapsedMs(seekStart);
+            seekPending = true;
+          }
+          else
+          {
+            Log::write(0, "Video file seek failed");
+            this->frames.finish(epoch, FrameQueue::Status::Error);
+            idle = true;
+          }
         }
         index = target;
       }
     }
     else
     {
-      cv::Mat frame;
-      if (this->getFrame(capture, frame))
+      // frames before this one are late: the main thread will drop them anyway
+      const int64_t wanted = this->frames.wantedIndex();
+
+      const auto grabStart = Clock::now();
+      bool ok = capture.grab();
+      const double grabTime = elapsedMs(grabStart);
+
+      if (ok)
       {
-        // a stale epoch means that a new command is on the way
-        idle = !this->frames.push(epoch, index, std::move(frame));
+        if (seekPending)
+        {
+          smooth(seekMs, seekCallMs + grabTime, 0.5);
+          seekPending = false;
+          tuneThreshold();
+        }
+        else
+        {
+          smooth(grabMs, grabTime, 0.1);
+        }
+
+        if (index < wanted)
+        {
+          // the frame is decoded by grab(), converting it to BGR is what can be saved
+          idle = !this->frames.skip(epoch, index);
+        }
+        else
+        {
+          cv::Mat frame;
+          ok = capture.retrieve(frame);
+          if (ok)
+          {
+            // a stale epoch means that a new command is on the way
+            idle = !this->frames.push(epoch, index, std::move(frame));
+          }
+        }
+      }
+
+      if (ok)
+      {
         ++index;
       }
       else
@@ -247,7 +330,17 @@ void VideoFileSource::workerLoop()
 }
 
 
-void FrameQueue::start(int64_t threshold)
+void FrameQueue::start(size_t maxFrames, int64_t threshold)
+{
+  {
+    std::lock_guard<std::mutex> lock(this->mtx);
+    this->capacity = maxFrames;
+    this->seekThreshold = threshold;
+  }
+  this->cond.notify_all();
+}
+
+void FrameQueue::setSeekThreshold(int64_t threshold)
 {
   {
     std::lock_guard<std::mutex> lock(this->mtx);
@@ -265,9 +358,24 @@ bool FrameQueue::push(uint64_t frameEpoch, int64_t index, cv::Mat frame)
   if (accepted)
   {
     this->frames.push_back({index, std::move(frame)});
+    this->progress = index;
   }
   lock.unlock();
 
+  this->cond.notify_all();
+  return accepted;
+}
+
+bool FrameQueue::skip(uint64_t frameEpoch, int64_t index)
+{
+  bool accepted;
+  {
+    std::lock_guard<std::mutex> lock(this->mtx);
+    accepted = (frameEpoch == this->epoch);
+    if (accepted)
+      this->progress = index;
+  }
+  // the main thread may wait for the worker to come closer
   this->cond.notify_all();
   return accepted;
 }
@@ -301,6 +409,7 @@ uint64_t FrameQueue::reset()
     std::lock_guard<std::mutex> lock(this->mtx);
     this->frames.clear();
     this->current.reset();
+    this->progress.reset();
     this->finished = false;
     newEpoch = ++this->epoch;
   }
@@ -311,6 +420,8 @@ uint64_t FrameQueue::reset()
 FrameQueue::Status FrameQueue::pull(int64_t index, cv::Mat& frame)
 {
   std::unique_lock<std::mutex> lock(this->mtx);
+
+  this->wanted = index;
 
   while (true)
   {
@@ -344,7 +455,7 @@ FrameQueue::Status FrameQueue::pull(int64_t index, cv::Mat& frame)
       return this->terminalStatus;
 
     // reading frame by frame up to the requested one takes longer than a seek
-    if (this->current && index - this->current->index > this->seekThreshold)
+    if (this->progress && index - *this->progress > this->seekThreshold)
       return Status::NeedSeek;
 
     this->cond.wait(lock);
